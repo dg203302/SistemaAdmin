@@ -1,17 +1,81 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bienvenido Admin</title>
-</head>
-<body>
-    <h1>Bienvenido Admin</h1>
-    <form id="Form-admin">
-        <label for="contra-admin">Ingrese la contraseña</label>
-        <input required type="password" id="contra-admin" placeholder="Contraseña">
-        <input type="submit" value="Iniciar Sesión">
-    </form>
-    <script type="module" src="/scripts/script_inicio.js"></script>
-</body>
-</html>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="color-scheme" content="light dark" />
+        <title>Acceso | Sistema Admin</title>
+        <link rel="stylesheet" href="./styles/index.css" />
+        <link rel="preload" href="./styles/index.css" as="style" />
+    </head>
+    <!--
+        -registrar puntos a un cliente (ver bien el titulo)
+        -crear publicaciones, con publicaciones son avisos, ofertas, promociones>
+        -administrar publicaciones, editarlas o eliminarlas
+        -administrar clientes- ver historial de puntos asignados, eliminar, modificar datos, modificar puntos
+    -->
+    <body class="auth-layout">
+        <header class="topbar" role="banner">
+            <div class="brand">
+                <span class="brand__logo" aria-hidden="true">🛡️</span>
+                <span class="brand__name">Sistema de Administración del Lote</span>
+            </div>
+            <div class="spacer"></div>
+            <nav aria-label="Acciones">
+                <a class="link muted small" href="#ayuda">Ayuda</a>
+            </nav>
+        </header>
+
+        <main class="auth" role="main">
+            <section class="card auth__card" aria-labelledby="auth-title">
+                <header class="auth__header">
+                    <h1 id="auth-title">Bienvenido, Administrador</h1>
+                    <p class="muted">Ingresa tu contraseña para continuar.</p>
+                </header>
+
+                <form id="Form-admin" class="form" autocomplete="current-password">
+                    <div class="field">
+                        <label for="contra-admin">Contraseña</label>
+                        <div class="input-wrap">
+                            <input required type="password" id="contra-admin" placeholder="••••••••" aria-required="true" />
+                            <button type="button" class="icon-btn" id="togglePwd" aria-label="Mostrar contraseña" aria-pressed="false">👁️</button>
+                        </div>
+                        <small class="hint muted">Tu sesión se cerrará automáticamente tras un período de inactividad.</small>
+                    </div>
+
+                    <div class="actions">
+                        <input type="submit" class="btn primary" value="Iniciar sesión" />
+                    </div>
+                </form>
+
+                <footer class="auth__footer">
+                    <small class="muted">¿Olvidaste tu contraseña? Contacta al administrador del sistema.</small>
+                </footer>
+            </section>
+        </main>
+
+        <footer class="footer" role="contentinfo">
+            <small>© <span id="y"></span> Sistema Admin</small>
+        </footer>
+
+        <script>
+            // Toggle mostrar/ocultar contraseña sin interferir con script_inicio.js
+            (function () {
+                const y = document.getElementById('y');
+                if (y) y.textContent = new Date().getFullYear();
+                const input = document.getElementById('contra-admin');
+                const btn = document.getElementById('togglePwd');
+                if (input && btn) {
+                    btn.addEventListener('click', () => {
+                        const isPass = input.type === 'password';
+                        input.type = isPass ? 'text' : 'password';
+                        btn.setAttribute('aria-pressed', String(isPass));
+                        btn.setAttribute('aria-label', isPass ? 'Ocultar contraseña' : 'Mostrar contraseña');
+                    });
+                }
+            })();
+        </script>
+
+        <script type="module" src="/scripts/script_inicio.js"></script>
+    </body>
+    </html>
