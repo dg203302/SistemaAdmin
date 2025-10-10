@@ -102,7 +102,7 @@ body {
   gap: var(--pad-xl);
 }
 
-.page-header { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; justify-content: space-between; }
+.page-header { display: flex; flex-direction: row;justify-content: space-between;align-items: center;}
 .page-header h1 { margin: 0 0 4px; font-size: clamp(1.4rem, 1.2rem + 1vw, 1.9rem); }
 .muted { color: var(--muted); }
 .page-actions { display: flex; gap: 10px; }
@@ -127,28 +127,11 @@ body {
 .kpi__delta.negative { color: var(--error); }
 .kpi__delta.neutral { color: var(--muted); }
 
-.quick-actions { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: var(--pad); }
+.quick-actions { display: flex;justify-content: space-evenly; align-items: center;}
 .action { display:flex; align-items:center; gap: 12px; padding: 14px; border-radius: var(--radius-sm); border:1px solid var(--border); background: var(--elev-1); color: var(--text); text-decoration: none; }
 .action:hover { border-color: color-mix(in oklab, var(--brand) 40%, var(--border)); box-shadow: 0 8px 24px rgba(124,92,255,.14); }
 .action__icon { width: 36px; height: 36px; display:grid; place-items:center; border-radius: 10px; background: linear-gradient(135deg, var(--brand), var(--brand-700)); color: white; box-shadow: var(--shadow); }
 .action__label { font-weight: 600; }
-
-.publications { grid-template-columns: repeat(2, minmax(0,1fr)); }
-.pub { padding: var(--pad); border: 1px dashed var(--border); border-radius: var(--radius-sm); display: grid; align-content: start; gap: 8px; background: linear-gradient(180deg, rgba(56,189,248,.10), rgba(56,189,248,0) 50%), var(--elev-1); }
-.pub__title { margin: 0; font-size: 1.05rem; }
-.pub__actions { display:flex; gap: 8px; margin-top: 6px; }
-
-.table-wrap { width: 100%; overflow: auto; }
-.table { width: 100%; border-collapse: collapse; }
-.table th, .table td { padding: 12px 14px; border-bottom: 1px solid var(--border); }
-.table thead th { text-align: left; font-size: .9rem; color: var(--muted); font-weight: 700; letter-spacing: .2px; }
-.table tbody tr:hover { background: rgba(124,92,255,.06); }
-.right { text-align: right; }
-
-.badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: .82rem; border: 1px solid transparent; }
-.badge.success { background: color-mix(in oklab, var(--accent) 18%, transparent); color: var(--accent); border-color: color-mix(in oklab, var(--accent) 40%, var(--border)); }
-.badge.info { background: color-mix(in oklab, var(--info) 18%, transparent); color: var(--info); border-color: color-mix(in oklab, var(--info) 40%, var(--border)); }
-.badge.warning { background: color-mix(in oklab, var(--warning) 18%, transparent); color: var(--warning); border-color: color-mix(in oklab, var(--warning) 40%, var(--border)); }
 
 .btn { --b: var(--border); --bg: var(--elev-1); --c: var(--text); display: inline-flex; align-items:center; gap: 8px; border: 1px solid var(--b); background: var(--bg); color: var(--c); padding: 10px 14px; border-radius: var(--radius-xs); text-decoration: none; cursor: pointer; font-weight: 600; transition: transform .06s ease, box-shadow .2s ease; }
 .btn:hover { box-shadow: 0 8px 20px rgba(0,0,0,.18); transform: translateY(-1px); }
@@ -165,9 +148,6 @@ body {
   width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; cursor: pointer;
 }
 .icon-btn:hover { box-shadow: 0 8px 24px rgba(0,0,0,.16); }
-
-.input { width: 260px; max-width: 100%; border:1px solid var(--border); background: var(--elev-1); color: var(--text); padding: 10px 12px; border-radius: 10px; }
-.input:focus { outline: 2px solid var(--brand); outline-offset: 2px; }
 
 .footer { grid-area: footer; padding: var(--pad); border-top: 1px solid var(--border); background: var(--panel); color: var(--muted); text-align: center; }
 
@@ -186,3 +166,9 @@ body {
 
 /* Utilidades */
 .sr-only { position: absolute !important; width: 1px; height: 1px; clip: rect(1px,1px,1px,1px); overflow: hidden; white-space: nowrap; }
+
+img{
+  max-width: 10%;
+  max-height: 10%;
+  object-fit: contain;
+}

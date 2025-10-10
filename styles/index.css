@@ -104,3 +104,8 @@ input:focus { outline: 2px solid var(--brand); outline-offset: 2px; }
 	* { transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }
 
+img{
+  max-width: 10%;
+  max-height: 10%;
+  object-fit: contain;
+}
