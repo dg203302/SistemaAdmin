@@ -1,126 +1,14 @@
-:root {
-	--bg: #0b0c10;
-	--panel: #121418;
-	--surface: #1b1f27;
-	--text: #e6e9ef;
-	--muted: #a6adbb;
-	--brand: #7c5cff;
-	--border: #2a2f3a;
-	--radius: 12px;
-	--pad: 16px;
-}
+/* Admin Usuarios: usa tokens y componentes del tema base */
 
-/* Page layout */
-.admin-page {
-	min-height: 100dvh;
-	padding: 24px;
-	background: radial-gradient(1200px 600px at 10% -10%, rgba(124,92,255,.06), transparent 60%), var(--bg);
-	color: var(--text);
-	font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial;
-}
+.admin-toolbar { gap: 12px; }
 
-.admin-panel {
-	background: var(--surface);
-	border: 1px solid var(--border);
-	border-radius: var(--radius);
-	padding: 18px;
-	box-shadow: 0 8px 30px rgba(0,0,0,.22);
-}
+.section-title { margin: 0; font-size: clamp(1.1rem, 1rem + .6vw, 1.4rem); }
 
-.admin-header {
-	display: flex;
-	align-items: center;
-	gap: 12px;
-	margin-bottom: 12px;
-}
-.admin-title { font-size: 1.25rem; font-weight: 800; }
-.admin-sub { color: var(--muted); font-size: .95rem; }
+.hide-sm { display: table-cell; }
+@media (max-width: 640px) { .hide-sm { display: none; } }
 
-/* Controls */
-.admin-actions { display: flex; gap: 10px; margin-left: auto; }
-.btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 10px; cursor: pointer; border: 1px solid var(--border); background: color-mix(in oklab, var(--brand) 0%, var(--surface)); color: var(--text); font-weight:700; }
-.btn.primary { background: linear-gradient(135deg, var(--brand), color-mix(in oklab, var(--brand) 80%, black)); color: #fff; border-color: color-mix(in oklab, var(--brand) 30%, var(--border)); }
-.btn.ghost { background: transparent; border-color: transparent; color: var(--muted); }
+.empty { padding: 18px; color: var(--muted); }
 
-/* Search and filters */
-.filter-row { display:flex; gap:12px; align-items:center; margin-bottom:16px; }
-.search { display:flex; flex-direction: row;}
-.search input { width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background: color-mix(in oklab, var(--surface) 96%, black); color:var(--text); }
-.select, .select select { padding:10px; border-radius:10px; border:1px solid var(--border); background: color-mix(in oklab, var(--surface) 96%, black); color:var(--text); }
+.row-actions { display: inline-flex; gap: 8px; }
 
-/* Spacing and layout for the phone search form */
-#busqueda_nom {
-	display: flex;
-	gap: 8px;
-	align-items: center;
-}
-
-#busqueda_nom label {
-	color: var(--muted);
-	font-weight: 700;
-	margin: 0 6px 0 0;
-	white-space: nowrap;
-}
-
-#busqueda_nom input[type="text"] {
-	flex: 1 1 260px; /* grow to fill, but keep a reasonable min width */
-	min-width: 140px;
-	padding: 10px 12px;
-	border-radius: 10px;
-	border: 1px solid var(--border);
-	background: color-mix(in oklab, var(--surface) 96%, black);
-	color: var(--text);
-}
-
-#busqueda_nom .btn, #busqueda_nom input[type="submit"] {
-	white-space: nowrap;
-	padding: 10px 12px;
-}
-
-@media (max-width: 600px) {
-	/* Stack form elements on small screens */
-	#busqueda_nom {
-		flex-direction: column;
-		align-items: stretch;
-		gap: 8px;
-	}
-
-	#busqueda_nom label {
-		margin-right: 0;
-	}
-
-	#busqueda_nom input[type="text"] {
-		min-width: 0;
-		width: 100%;
-	}
-
-	#busqueda_nom .btn, #busqueda_nom input[type="submit"] {
-		width: 100%;
-	}
-}
-
-/* Table */
-.users-table { width:100%; border-collapse: collapse; font-size: .95rem; }
-.users-table thead th { text-align:left; padding:12px; border-bottom:1px solid var(--border); color:var(--muted); font-weight:700; }
-.users-table tbody tr { border-bottom:1px solid color-mix(in oklab, var(--border) 70%, transparent); }
-.users-table td { padding:12px; vertical-align: middle;font-weight:700; }
-
-/* Actions column */
-.row-actions { display:flex; gap:8px; }
-.icon-btn { width:38px; height:38px; border-radius:8px; display:grid; place-items:center; border:1px solid var(--border); background:var(--panel); color:var(--text); cursor:pointer; }
-
-/* Empty state */
-.empty { padding:36px; text-align:center; color:var(--muted); }
-
-/* Responsive */
-@media (max-width:900px) {
-	.filter-row { flex-direction:column; align-items:stretch; }
-	.admin-actions { width:100%; }
-	.users-table thead { display:none; }
-	.users-table tbody tr { display:block; padding:12px; border-radius:10px; background: color-mix(in oklab, var(--surface) 98%, black); margin-bottom:10px; }
-	.users-table tbody td { display:flex; justify-content:space-between; padding:8px 12px; }
-	.meta { gap:4px; }
-}
-a{
-    all: unset;
-}
+#usuariosBody td { vertical-align: middle; }

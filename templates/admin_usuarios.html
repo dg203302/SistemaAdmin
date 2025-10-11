@@ -1,81 +1,73 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="/styles/index.css">
-    <link rel="stylesheet" href="/styles/admin_usuarios.css">
-    <title>Document</title>
+    <title>Administrar usuarios</title>
+    <!-- Diseño base -->
+    <link rel="stylesheet" href="../estilo_prueba.css">
+    <!-- Estilos específicos de la página -->
+    <link rel="stylesheet" href="../styles/admin_usuarios.css">
+    <link rel="preload" as="image" href="../logo_lote.png">
 </head>
 <body>
-    <header class="topbar" role="banner">
-        <div class="brand">
-            <img src="/logo_lote.png" alt="Logo_lote">
-            <span class="brand__name">Sistema de Administración</span>
-        </div>
-        <div class="spacer"></div>
-        <nav aria-label="Acciones">
-            <a class="link muted small" href="mailto:diegogarcia479@yahoo.com.ar, juanpi9landa@gmail.com?subject=Inicio de Administrador">Ayuda</a>
-        </nav>
-    </header>
-
-    <div class="admin-page">
-        <main class="admin-panel">
-
-            <div class="admin-header" style="padding:0;">
-                <h2 class="admin-title">Administración de usuarios</h2>
+    <div class="layout">
+        <header class="topbar" role="banner">
+            <div class="brand">
+                <div class="brand__logo" aria-hidden="true">AU</div>
+                <span class="brand__name">Admin Usuarios</span>
             </div>
+            <div class="topbar__spacer"></div>
+            <nav aria-label="Ayuda">
+                <a class="btn ghost small" href="mailto:diegogarcia479@yahoo.com.ar, juanpi9landa@gmail.com?subject=Admin%20Usuarios">Ayuda</a>
+            </nav>
+        </header>
 
-            <div class="filter-row">
-                <div class="search">
-                    <form id="busqueda_nom">
-                        <label for="tele_cli">Nro de teléfono del cliente</label>
-                        <input id="tele_cli" type="text" placeholder="264XXXXXXX" required>
-                        <input class="btn primary" type="submit" value="Buscar usuario">
-                    </form>
-                    <button class="btn" href="javascript:void(0)" onclick="document.getElementById('busqueda_nom').reset()">Limpiar</button>
+        <main class="content">
+            <div class="page-header">
+                <div>
+                    <h1>Usuarios</h1>
+                    <div class="muted">Busca por teléfono o por nombre (prefijo)</div>
                 </div>
-                <div class="admin-actions">
-                    <a class="btn primary" href="/templates/agregar_usuario.html">Agregar Usuario</a>
+                <div class="page-actions admin-toolbar" role="group" aria-label="Búsqueda y acciones">
+                    <input id="q" class="input" type="text" placeholder="264xxxxxxx o nombre (p.ej. juan)" aria-label="Buscar usuario" />
+                    <button id="btnBuscar" class="btn primary" type="button">Buscar</button>
+                    <button id="btnVerTodos" class="btn" type="button">Ver todos</button>
+                    <div style="flex:1"></div>
+                    <a id="btnAgregar" class="btn" href="./agregar_usuario.html">Agregar usuario</a>
                 </div>
             </div>
 
-            <section id="usuarios" class="users-list">
-                <!-- Ejemplo de tabla de usuarios para probar estilos -->
-                <div class="admin-panel" style="padding:12px;">
-                    <table class="users-table" aria-describedby="tabla_usuarios" id="tabla_usuarios">
-                        <caption id="tabla_usuarios" class="muted" style="text-align:left; padding:8px 12px">Lista de usuarios</caption>
-                        <button>🔄</button>
+            <section id="usuariosSection" class="card" hidden>
+                <div class="card__header">
+                    <h2 class="section-title" id="usuariosTitle">Resultados</h2>
+                </div>
+                <div class="table-wrap">
+                    <table class="table" aria-describedby="usuariosTitle">
                         <thead>
                             <tr>
                                 <th>Usuario</th>
                                 <th>Teléfono</th>
-                                <th>Fecha de Creación</th>
-                                <th>Puntos</th>
-                                <th>Acciones</th>
+                                <th class="hide-sm">Creación</th>
+                                <th class="right">Acciones</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr>
-                                <td>Juan Carlos</td>
-                                <td>264-7654321</td>
-                                <td>30/12/25 23:12</td>
-                                <td>5000</td>
-                                <td class="row-actions">
-                                    <button class="icon-btn" aria-label="Editar" onclick="editar_clien()">✏️</button>
-                                    <button class="icon-btn" aria-label="Eliminar" onclick="eliminar_clien()">🗑️</button>
-                                </td>
-                            </tr>
-                        </tbody>
+                        <tbody id="usuariosBody"></tbody>
                     </table>
                 </div>
             </section>
         </main>
+
+        <footer class="footer" role="contentinfo">
+            <small>©<span id="y"></span> Todos los derechos reservados.</small>
+        </footer>
     </div>
-    <footer class="footer" role="contentinfo">
-        <small>©<span id="y"></span> Todos los derechos reservados.</small>
-    </footer>
-        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="/scripts/admin_usuarios.js"></script>    
+
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Config (claves) compartida con admin_publicaciones -->
+    <script src="../scripts/config.js"></script>
+    <!-- Lógica de la página -->
+    <script src="../scripts/admin_usuarios.js"></script>
 </body>
 </html>
