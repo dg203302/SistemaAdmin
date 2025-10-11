@@ -1,0 +1,22 @@
+/* Estilos específicos para Admin Publicaciones
+	 - Reutiliza tokens y componentes definidos en estilo_prueba.css
+*/
+
+.admin-toolbar { gap: 12px; }
+
+.section-title { margin: 0; font-size: clamp(1.1rem, 1rem + .6vw, 1.4rem); }
+
+/* Tabla responsiva: ocultar descripción en móviles */
+.hide-sm { display: table-cell; }
+@media (max-width: 640px) {
+	.hide-sm { display: none; }
+}
+
+/* Estados vacíos y mensajes */
+.empty { padding: 18px; color: var(--muted); }
+
+/* Botones de acción en filas */
+.row-actions { display: inline-flex; gap: 8px; }
+
+/* Alineación consistente */
+#itemsBody td { vertical-align: middle; }
