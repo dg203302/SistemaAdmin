@@ -1,0 +1,160 @@
+<html lang="es">
+<head>
+        <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Panel de Administración</title>
+    <link rel="stylesheet" href="/estilo_prueba.css" />
+</head>
+<body class="layout">
+    <!-- Barra superior -->
+    <header class="topbar" role="banner">
+        <div class="brand">
+            <span class="brand__logo" aria-hidden="true">🛠️</span>
+            <span class="brand__name">Sistema De Administracion De El Lote</span>
+        </div>
+        <div class="topbar__spacer" aria-hidden="true"></div>
+        <nav class="topbar__actions" aria-label="Acciones de usuario">
+            <button class="btn ghost" title="Notificaciones" aria-label="Notificaciones">🔔</button>
+            <button class="btn primary small" id="logoutBtn" title="Cerrar sesión">Cerrar sesión</button>
+        </nav>
+    </header>
+
+    <!-- Contenido principal -->
+    <main class="content" role="main">
+        <header class="page-header">
+            <div>
+                <h1>Inicio</h1>
+                <p class="muted">Gestiona clientes, puntos y publicaciones desde un solo lugar.</p>
+            </div>
+            <div class="page-actions">
+                <a class="btn primary" href="#registrar-puntos">Registrar puntos</a>
+                <a class="btn" href="#crear-publicacion">Nueva publicación</a>
+            </div>
+        </header>
+
+        <!-- Indicadores -->
+        <section class="grid kpis" aria-label="Indicadores principales">
+            <article class="card kpi" aria-live="polite">
+                <header>Clientes activos</header>
+                <div class="kpi__value">1,248</div>
+                <div class="kpi__delta positive">▲ 3.4% este mes</div>
+            </article>
+            <article class="card kpi" aria-live="polite">
+                <header>Puntos asignados</header>
+                <div class="kpi__value">56,320</div>
+                <div class="kpi__delta neutral">— estable</div>
+            </article>
+            <article class="card kpi" aria-live="polite">
+                <header>Publicaciones activas</header>
+                <div class="kpi__value">12</div>
+                <div class="kpi__delta negative">▼ 1 esta semana</div>
+            </article>
+            <article class="card kpi" aria-live="polite">
+                <header>Canjes del día</header>
+                <div class="kpi__value">87</div>
+                <div class="kpi__delta positive">▲ 12 hoy</div>
+            </article>
+        </section>
+
+        <!-- Acciones rápidas -->
+        <section class="card" id="acciones-rapidas" aria-labelledby="acciones-rapidas-title">
+            <header class="card__header">
+                <h2 id="acciones-rapidas-title">Acciones rápidas</h2>
+            </header>
+            <div class="quick-actions">
+                <a class="action" href="#registrar-puntos" aria-label="Registrar puntos a un cliente">
+                    <span class="action__icon" aria-hidden="true">➕</span>
+                    <span class="action__label">Registrar puntos</span>
+                </a>
+                <a class="action" href="#crear-publicacion" aria-label="Crear una nueva publicación">
+                    <span class="action__icon" aria-hidden="true">📝</span>
+                    <span class="action__label">Crear publicación</span>
+                </a>
+                <a class="action" href="#administrar-publicaciones" aria-label="Administrar publicaciones">
+                    <span class="action__icon" aria-hidden="true">📣</span>
+                    <span class="action__label">Administrar publicaciones</span>
+                </a>
+                <a class="action" href="#administrar-clientes" aria-label="Administrar clientes y puntos">
+                    <span class="action__icon" aria-hidden="true">👥</span>
+                    <span class="action__label">Administrar clientes</span>
+                </a>
+            </div>
+        </section>
+
+        <!-- Actividad reciente -->
+        <section class="card" aria-labelledby="actividad-title">
+            <header class="card__header">
+                <h2 id="actividad-title">Actividad reciente</h2>
+                <div class="card__tools">
+                    <input type="search" class="input" placeholder="Buscar…" aria-label="Buscar actividad" />
+                </div>
+            </header>
+            <div class="table-wrap">
+                <table class="table" role="grid">
+                    <thead>
+                        <tr>
+                            <th scope="col">Fecha</th>
+                            <th scope="col">Acción</th>
+                            <th scope="col">Cliente</th>
+                            <th scope="col">Detalle</th>
+                            <th scope="col" class="right">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>09/10/2025 10:21</td>
+                            <td>Asignación de puntos</td>
+                            <td>María López</td>
+                            <td>+150 por compra</td>
+                            <td class="right"><span class="badge success">Completado</span></td>
+                        </tr>
+                        <tr>
+                            <td>09/10/2025 09:55</td>
+                            <td>Nueva publicación</td>
+                            <td>—</td>
+                            <td>Promo "2x1 Fin de semana"</td>
+                            <td class="right"><span class="badge info">Publicado</span></td>
+                        </tr>
+                        <tr>
+                            <td>09/10/2025 09:10</td>
+                            <td>Edición cliente</td>
+                            <td>Juan Pérez</td>
+                            <td>Actualización de teléfono</td>
+                            <td class="right"><span class="badge warning">Pendiente</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Publicaciones -->
+        <section class="card" id="administrar-publicaciones" aria-labelledby="publicaciones-title">
+            <header class="card__header">
+                <h2 id="publicaciones-title">Publicaciones</h2>
+                <a class="btn small" href="#crear-publicacion">+ Nueva</a>
+            </header>
+            <div class="grid publications">
+                <article class="pub">
+                    <h3 class="pub__title">Liquidación de Invierno</h3>
+                    <p class="muted">Hasta 40% de descuento. Válido hasta 31/07.</p>
+                    <div class="pub__actions">
+                        <button class="btn small">Editar</button>
+                        <button class="btn ghost small">Eliminar</button>
+                    </div>
+                </article>
+                <article class="pub">
+                    <h3 class="pub__title">Día del Cliente</h3>
+                    <p class="muted">Puntos x2 en todas las compras de hoy.</p>
+                    <div class="pub__actions">
+                        <button class="btn small">Editar</button>
+                        <button class="btn ghost small">Eliminar</button>
+                    </div>
+                </article>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer" role="contentinfo">
+        <small>© <span id="y"></span> Sistema Admin. Todos los derechos reservados.</small>
+    </footer>
