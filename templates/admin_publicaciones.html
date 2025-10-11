@@ -1,11 +1,80 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-</head>
-<body>
-    <h1>Pagina para administrar las publicaciones</h1>
-</body>
-</html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Administrar publicaciones</title>
+    <!-- Diseño base -->
+    <link rel="stylesheet" href="../estilo_prueba.css" />
+    <!-- Estilos específicos de la página -->
+    <link rel="stylesheet" href="../styles/admin_publicaciones.css" />
+  </head>
+  <body>
+    <div class="layout">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand__logo" aria-hidden="true">AP</div>
+          <div class="brand__name">Admin Publicaciones</div>
+        </div>
+        <div class="topbar__spacer"></div>
+      </header>
+
+      <main class="content">
+        <div class="page-header">
+          <div>
+            <h1>Administrar publicaciones</h1>
+            <div class="muted">Selecciona qué quieres administrar y presiona Administrar</div>
+          </div>
+          <div class="page-actions admin-toolbar" role="group" aria-label="Selección de módulo a administrar">
+            <select id="opciones" name="opciones" class="input" required aria-label="Elegir módulo">
+              <option value="" selected hidden>Seleccionar...</option>
+              <option value="Avisos">Avisos</option>
+              <option value="Promociones">Promociones</option>
+              <option value="Ofertas">Ofertas</option>
+            </select>
+            <button id="btnAdministrar" class="btn primary" type="button">Administrar</button>
+          </div>
+        </div>
+
+        <!-- Sección dinámica -->
+        <section id="adminSection" class="card" hidden>
+          <div class="card__header">
+            <h2 id="sectionTitle" class="section-title">—</h2>
+            <div class="card__tools">
+              <button id="btnCrear" class="btn" type="button">
+                <span aria-hidden="true">＋</span>
+                Crear
+              </button>
+            </div>
+          </div>
+          <div class="body" id="sectionHelper" hidden>
+            <span class="badge warning">Config requerida</span>
+            <span class="muted">Faltan las claves de Supabase. Edita <code>scripts/config.js</code>.</span>
+          </div>
+          <div class="table-wrap">
+            <table class="table" aria-describedby="sectionTitle">
+              <thead>
+                <tr>
+                  <th>Id</th>
+                  <th>Título</th>
+                  <th class="hide-sm">Descripción</th>
+                  <th class="right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="itemsBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+
+      <footer class="footer">Sistema Admin · Publicaciones</footer>
+    </div>
+
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Configurar tus claves aquí -->
+    <script src="../scripts/config.js"></script>
+    <!-- Lógica de la página -->
+    <script src="../scripts/admin_publicaciones.js"></script>
+  </body>
+  </html>
