@@ -14,8 +14,8 @@
     <div class="layout">
         <header class="topbar" role="banner">
             <div class="brand">
-                <div class="brand__logo" aria-hidden="true">AU</div>
-                <span class="brand__name">Admin Usuarios</span>
+                <img src="/logo_lote.png" alt="Logo_lote">
+                <span class="brand__name">Administración Usuarios</span>
             </div>
             <div class="topbar__spacer"></div>
             <nav aria-label="Ayuda">
@@ -46,10 +46,11 @@
                     <table class="table" aria-describedby="usuariosTitle">
                         <thead>
                             <tr>
-                                <th>Usuario</th>
+                                <th>Nombre</th>
                                 <th>Teléfono</th>
+                                <th>Puntos</th>
                                 <th class="hide-sm">Creación</th>
-                                <th class="right">Acciones</th>
+                                <th class="right" style="text-align: center;">Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="usuariosBody"></tbody>
@@ -62,6 +63,14 @@
             <small>©<span id="y"></span> Todos los derechos reservados.</small>
         </footer>
     </div>
+
+        <script>
+            // Toggle mostrar/ocultar contraseña sin interferir con script_inicio.js
+            (function () {
+                const y = document.getElementById('y');
+                if (y) y.textContent = new Date().getFullYear();
+            })();
+        </script>
 
     <!-- Supabase CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

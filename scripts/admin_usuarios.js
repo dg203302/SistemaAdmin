@@ -1,15 +1,4 @@
 (function(){
-    // Config: ajusta nombres reales de tabla y columnas
-    const USERS_CONFIG = {
-        table: 'Clientes',
-        cols: {
-            id: 'id',            // PK (ajusta si es distinto, p.ej. 'id_cliente')
-            name: 'nombre',      // nombre de usuario
-            phone: 'telefono',   // teléfono
-            createdAt: 'created_at'
-        }
-    };
-
     /** @type {import('@supabase/supabase-js').SupabaseClient | null} */
     let supabaseClient = null;
 
@@ -34,24 +23,31 @@
         tr.appendChild(td); b.appendChild(tr);
     }
 
-    function renderRow(u, cols){
+    function renderRow(u) {
         const tr = document.createElement('tr');
 
         const tdName = document.createElement('td');
-        tdName.textContent = u[cols.name] ?? '';
+        tdName.textContent = u['Nombre'];
         tr.appendChild(tdName);
 
         const tdPhone = document.createElement('td');
-        tdPhone.textContent = u[cols.phone] ?? '';
+        tdPhone.textContent = u['Telef'];
         tr.appendChild(tdPhone);
+
+        const tdPoints = document.createElement('td');
+        tdPoints.textContent = u['Puntos'];
+        tr.appendChild(tdPoints);
 
         const tdCreated = document.createElement('td');
         tdCreated.className = 'hide-sm';
-        tdCreated.textContent = u[cols.createdAt] ? new Date(u[cols.createdAt]).toLocaleString() : '';
+        tdCreated.textContent = u['Fecha_creacion']
+            ? new Date(u['Fecha_creacion']).toLocaleString()
+            : '';
         tr.appendChild(tdCreated);
 
         const tdActions = document.createElement('td');
         tdActions.className = 'right';
+
         const wrap = document.createElement('span');
         wrap.className = 'row-actions';
 
@@ -82,14 +78,28 @@
         clearBody();
         const client = ensureSupabase();
         setSectionVisible(true);
-        if (!client){ renderEmpty('Configura Supabase (scripts/config.js)'); return; }
-        const { table, cols } = USERS_CONFIG;
-        const { data, error } = await client.from(table).select('*').order(cols.createdAt, { ascending:false });
-        if (error){ console.error(error); renderEmpty('Error al cargar'); return; }
-        if (!data || data.length === 0){ renderEmpty('No hay usuarios'); return; }
+        if (!client){
+            renderEmpty('Configura Supabase (scripts/config.js)');
+            return;
+        }
+        const { data, error } = await client
+        .from("Clientes")
+        .select('*');
+        if (error){
+            console.error(error);
+            renderEmpty('Error al cargar');
+            return;
+        }
+        if (!data || data.length === 0){
+            renderEmpty('No hay usuarios');
+            return;
+        }
         const b = $('usuariosBody');
-        for (const u of data){ b.appendChild(renderRow(u, cols)); }
+        for (const u of data){
+            b.appendChild(renderRow(u));
+        }
     }
+
 
     async function searchUsers(){
         clearBody();
@@ -97,44 +107,80 @@
         setSectionVisible(true);
         if (!q){ renderEmpty('Ingresa un teléfono o nombre'); return; }
         const client = ensureSupabase();
-        if (!client){ renderEmpty('Configura Supabase (scripts/config.js)'); return; }
-        const { table, cols } = USERS_CONFIG;
+        if (!client){
+            renderEmpty('Configura Supabase (scripts/config.js)');
+            return;
+        }
+        let query = client
+                    .from("Clientes")
+                    .select('*');
 
-        let query = client.from(table).select('*');
         if (isPhoneLike(q)){
             const digits = q.replace(/[^0-9]/g,'');
-            query = query.ilike(cols.phone, `%${digits}%`);
+            query = query.ilike("Telef", `%${digits}%`);
         } else {
-            query = query.ilike(cols.name, `${q}%`);
+            query = query.ilike("Nombre", `${q}%`);
         }
 
-        const { data, error } = await query.order(cols.createdAt, { ascending:false });
-        if (error){ console.error(error); renderEmpty('Error en la búsqueda'); return; }
-        if (!data || data.length === 0){ renderEmpty('Sin resultados'); return; }
+        const { data, error } = await query
+        .order("Fecha_creacion", { ascending:false });
+        if(error){
+            console.error(error);
+            renderEmpty('Error en la búsqueda');
+            return;
+        }
+        if(!data||data.length === 0){
+            renderEmpty('Sin resultados');
+            return;
+        }
         const b = $('usuariosBody');
-        for (const u of data){ b.appendChild(renderRow(u, cols)); }
+        for (const u of data){
+            b.appendChild(renderRow(u));
+        }
     }
 
     async function editUser(u){
-        const { table, cols } = USERS_CONFIG;
         const client = ensureSupabase();
-        if (!client){ alert('Configura Supabase'); return; }
-        const nuevoNombre = prompt('Nuevo nombre:', u[cols.name] ?? '');
+        if (!client){
+            alert('Configura Supabase');
+            return;
+        }
+        const nuevoNombre = prompt('Nuevo nombre:', u['Nombre'] ?? '');
         if (nuevoNombre === null) return;
-        const nuevoTel = prompt('Nuevo teléfono:', u[cols.phone] ?? '');
+
+        const nuevoTel = prompt('Nuevo teléfono:', u['Telef'] ?? '');
         if (nuevoTel === null) return;
-        const { error } = await client.from(table).update({ [cols.name]: nuevoNombre, [cols.phone]: nuevoTel }).eq(cols.id, u[cols.id]);
-        if (error){ alert('Error al actualizar'); return; }
+
+        const nuevoPuntos = prompt('Actualizacion de puntos:', u['Puntos'] ?? '');
+        if (nuevoPuntos === null) return;
+
+        const { error } = await client
+        .from("Clientes")
+        .update({ Nombre: nuevoNombre, Telef: nuevoTel, Puntos: nuevoPuntos })
+        .eq("Telef", u['Telef']);
+        if (error){
+            alert('Error al actualizar');
+            return;
+        }
         await listAll();
     }
 
     async function deleteUser(u){
-        const { table, cols } = USERS_CONFIG;
         const client = ensureSupabase();
-        if (!client){ alert('Configura Supabase'); return; }
-        if (!confirm('¿Eliminar usuario?')) return;
-        const { error } = await client.from(table).delete().eq(cols.id, u[cols.id]);
-        if (error){ alert('Error al eliminar'); return; }
+        if (!client){
+            alert('Configura Supabase');
+            return;
+        }
+        if (!confirm('¿Eliminar usuario?'))return;
+
+        const { error } = await client
+        .from("Clientes")
+        .delete()
+        .eq("Telef", u['Telef']);
+        if (error){
+            alert('Error al eliminar');
+            return;
+        }
         await listAll();
     }
 
