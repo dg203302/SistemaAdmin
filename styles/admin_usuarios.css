@@ -12,9 +12,3 @@
 .row-actions { display: flex; gap: 8px; justify-content: center; align-items: center; }
 
 #usuariosBody td { vertical-align: middle; }
-
-img{
-  max-width: 10%;
-  max-height: 10%;
-  object-fit: contain;
-}
