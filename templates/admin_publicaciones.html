@@ -13,10 +13,15 @@
     <div class="layout">
       <header class="topbar">
         <div class="brand">
-          <div class="brand__logo" aria-hidden="true">AP</div>
+          <img src="/logo_lote.png" alt="Logo_lote" style="max-width: 10%; max-height: 10%; object-fit: contain;">
           <div class="brand__name">Admin Publicaciones</div>
         </div>
         <div class="topbar__spacer"></div>
+        <div class="topbar__spacer"></div>
+        <a class="btn" href="/templates/pagina_inicio.html">🏠︎</a>
+            <nav aria-label="Ayuda">
+              <a class="btn ghost small" href="mailto:diegogarcia479@yahoo.com.ar, juanpi9landa@gmail.com?subject=Admin%20Usuarios">Ayuda</a>
+            </nav>
       </header>
 
       <main class="content">
@@ -85,8 +90,18 @@
         </section>
       </main>
 
-      <footer class="footer">Sistema Admin · Publicaciones</footer>
+      <footer class="footer">
+        <small>©<span id="y"></span> Todos los derechos reservados.</small>
+      </footer>
     </div>
+
+    <script>
+        // Toggle mostrar/ocultar contraseña sin interferir con script_inicio.js
+        (function () {
+            const y = document.getElementById('y');
+            if (y) y.textContent = new Date().getFullYear();
+        })();
+    </script>
 
     <!-- Supabase CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
