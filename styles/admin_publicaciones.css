@@ -16,7 +16,7 @@
 .empty { padding: 18px; color: var(--muted); }
 
 /* Botones de acción en filas */
-.row-actions { display: inline-flex; gap: 8px; }
+.row-actions { display: flex; gap: 8px; justify-content: center; align-items: center;}
 
 /* Alineación consistente */
 #itemsBody td { vertical-align: middle; }
