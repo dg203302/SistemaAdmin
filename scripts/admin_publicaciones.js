@@ -202,37 +202,35 @@
           <button type="button" class="icon-btn" id="btnCloseEditor" aria-label="Cerrar">✕</button>
         </div>
         <div class="inline-body">
-          <form class="inline-form" id="inlineForm">
-            <div class="field">
+          <form class="inline-form" id="inlineForm" data-tipo="${tipo}">
+            <div class="field field-titulo">
               <label for="fTitulo">Título</label>
               <input id="fTitulo" type="text" value="${escapeHtml(titleVal)}" required />
             </div>
-            <div class="field">
+            <div class="field field-descripcion">
               <label for="fDesc">Descripción</label>
-              <textarea id="fDesc" rows="2">${escapeHtml(descVal)}</textarea>
-              <div class="inline-hint">Escribe una descripción breve y clara.</div>
+              <textarea id="fDesc" rows="4">${escapeHtml(descVal)}</textarea>
             </div>
             ${cols.flotante ? `
-              <div class="field">
+              <div class="field field-flotante">
                 <label for="fFlot">Título flotante</label>
                 <input id="fFlot" type="text" value="${escapeAttr(flotVal)}" placeholder="Texto destacado" />
               </div>
             ` : ''}
             ${isPromo ? `
-              <div class="field">
+              <div class="field field-puntos">
                 <label for="fPuntos">Puntos</label>
                 <input id="fPuntos" type="number" step="1" min="0" value="${escapeAttr(ptsVal)}" />
                 <div class="inline-hint">Solo números enteros.</div>
               </div>
             ` : ''}
             ${cols.emoji ? `
-              <div class="field">
+              <div class="field field-emoji">
                 <label for="fEmoji">Emoji</label>
                 <input id="fEmoji" type="text" class="w-emoji" value="${escapeAttr(emojiVal)}" placeholder="p.ej. 🎉" />
-                <div class="inline-hint">Pega un emoji que identifique la ${tipo.toLowerCase()}.</div>
               </div>
             ` : ''}
-            <div class="field">
+            <div class="field field-vigencia">
               <label for="fVig">Vigencia</label>
               <input id="fVig" type="text" value="${escapeAttr(vigVal)}" placeholder="p.ej. 2025-12-31 o 30 días" />
             </div>
@@ -316,6 +314,8 @@
       if (!tipo){ alert('Selecciona una opción'); return; }
 
       setTitle(tipo);
+      const sectionEl = document.getElementById('adminSection');
+      if (sectionEl) sectionEl.setAttribute('data-tipo', tipo);
       setSectionVisible(true);
       await loadItems(tipo);
 
