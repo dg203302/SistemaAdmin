@@ -9,51 +9,28 @@ const cantidad_promos_activas = document.getElementById(id="prom_act")
 const cantidad_codigos_sin_valid = document.getElementById(id="codigos_sin_v")
 
 async function cargar_cantidades(){
-    const [clientes,historial_puntos,promos,codigos_promos] = await Promise.all([
-        client.from('Clientes').select('Telef'),
-        client.from("Historial_Puntos").select('Cantidad_Puntos'),
-        client.from('Promos_puntos').select('id_promo'),
-        client.from('Codigos_promos_puntos').select('codigo_canjeado').eq('Canjeado',0)
-    ])
-    if (clientes.error || historial_puntos.error || promos.error || codigos_promos.error){
-        console.error('Error en alguna consulta:', {
-            clientes: clientes.error,
-            historial_puntos: historial_puntos.error,
-            promos: promos.error,
-            codigos_promos: codigos_promos.error
-        })
-    }
-    else{
-        cont = 0
-        for (const clie in clientes.data) {
-            if (clie){
-                cont+=1;
-            }
-        }
-        cantidad_clientes_activos.textContent = cont;
-        cont = 0
+  const [clientes, historial_puntos, promos, codigos_promos] = await Promise.all([
+    client.from('Clientes').select('Telef'),
+    client.from('Historial_Puntos').select('Cantidad_Puntos'),
+    client.from('Promos_puntos').select('id_promo'),
+    client.from('Codigos_promos_puntos').select('codigo_canjeado').eq('Canjeado', 0)
+  ]);
 
-        for (const punt in historial_puntos.data){
-            cont += punt.Cantidad_puntos;
-        }
-        cantidad_puntos_totales.textContent = cont
-        cont=0
+  if (clientes.error || historial_puntos.error || promos.error || codigos_promos.error) {
+    console.error('Error en alguna consulta:', {
+      clientes: clientes.error,
+      historial_puntos: historial_puntos.error,
+      promos: promos.error,
+      codigos_promos: codigos_promos.error
+    });
+  } else {
+    cantidad_clientes_activos.textContent = clientes.data.length;
 
-        for(const promo in promos.data){
-            if(promo){
-                cont+=1
-            }
-        }
-        cantidad_promos_activas.textContent = cont;
-        cont=0
+    const totalPuntos = historial_puntos.data.reduce((acc, p) => acc + (p.Cantidad_Puntos || 0), 0);
+    cantidad_puntos_totales.textContent = totalPuntos;
 
-        for(const codigs in codigos_promos.data){
-            if (codigs){
-                cont+=1
-            }
-        }
-        cantidad_codigos_sin_valid.textContent = cont
-        cont = 0
-    }
+    cantidad_promos_activas.textContent = promos.data.length;
+    cantidad_codigos_sin_valid.textContent = codigos_promos.data.length;
+  }
 }
 window.onload = cargar_cantidades()

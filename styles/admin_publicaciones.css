@@ -37,3 +37,9 @@
 .inline-actions { display:flex; gap:8px; justify-content:flex-end; grid-column: 1 / -1; }
 @media (max-width: 900px){ .inline-form { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 600px){ .inline-form { grid-template-columns: 1fr; } }
+
+img{
+  max-width: 10%;
+  max-height: 10%;
+  object-fit: contain;
+}
