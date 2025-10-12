@@ -3,16 +3,16 @@
   const CONFIG = {
     Avisos: {
       table: 'Avisos',
-      cols: { id: 'id_aviso', title: 'titulo_aviso', description: 'descripcion_aviso' }
+      cols: { id: 'id_aviso', title: 'titulo_aviso', description: 'descripcion_aviso', vigencia:'vigencia' }
     },
     Promociones: {
       table: 'Promos_puntos',
       // Ejemplo: si tu tabla usa id_promo como PK
-      cols: { id: 'id_promo', title: 'Nombre_promo', description: 'descripcion_promo' }
+      cols: { id: 'id_promo', title: 'Nombre_promo', description: 'descripcion_promo', puntos: 'cantidad_puntos_canjeo', vigencia: 'validez'}
     },
     Ofertas: {
       table: 'Ofertas',
-      cols: { id: 'id_promocion', title: 'nombre', description: 'descripcion' }
+      cols: { id: 'id_promocion', title: 'nombre', description: 'desripcion', vigencia:'vigencia' }
     }
   };
 
@@ -65,12 +65,8 @@
     tbody.appendChild(tr);
   }
 
-  function renderRow(item, cols, onEdit, onDelete){
+  function renderRow(item, cols, tipo, onEdit, onDelete){
     const tr = document.createElement('tr');
-
-    const tdId = document.createElement('td');
-    tdId.textContent = item[cols.id] ?? '';
-    tr.appendChild(tdId);
 
     const tdTitulo = document.createElement('td');
     tdTitulo.textContent = item[cols.title] ?? '';
@@ -80,6 +76,18 @@
     tdDesc.className = 'hide-sm';
     tdDesc.textContent = item[cols.description] ?? '';
     tr.appendChild(tdDesc);
+
+    // Solo para Promociones mostramos puntos
+    if (tipo === 'Promociones' && cols.puntos){
+      const tdPuntos = document.createElement('td');
+      tdPuntos.textContent = item[cols.puntos] ?? '';
+      tr.appendChild(tdPuntos);
+    }
+
+    // Vigencia si existe en el mapeo
+    const tdVig = document.createElement('td');
+    tdVig.textContent = cols.vigencia ? (item[cols.vigencia] ?? '') : '';
+    tr.appendChild(tdVig);
 
     const tdAcciones = document.createElement('td');
     tdAcciones.className = 'right';
@@ -123,10 +131,9 @@
     }
 
     const { table, cols } = cfg;
-    const { data, error } = await client
-      .from(table)
-      .select('*')
-      .order(cols.id, { ascending: false });
+    let q = client.from(table).select('*');
+    if (cols.id) q = q.order(cols.id, { ascending: false });
+    const { data, error } = await q;
 
     if (error){
       console.error(error);
@@ -157,8 +164,12 @@
       await loadItems(tipo);
     };
 
+    // Mostrar/ocultar encabezado de Puntos según tipo
+    const thPuntos = document.getElementById('thPuntos');
+    if (thPuntos) thPuntos.hidden = (tipo !== 'Promociones');
+
     for (const it of data){
-      tbody.appendChild(renderRow(it, cols, onEdit, onDelete));
+      tbody.appendChild(renderRow(it, cols, tipo, onEdit, onDelete));
     }
   }
 
@@ -172,8 +183,15 @@
     const titulo = prompt('Título:');
     if (!titulo) return;
     const descripcion = prompt('Descripción:') || '';
+    let puntosVal;
+    if (tipo === 'Promociones' && cols.puntos){
+      puntosVal = prompt('Puntos (número):') || '';
+    }
+    let vigVal = cols.vigencia !== undefined ? (prompt('Vigencia:') || '') : undefined;
 
     const payload = { [cols.title]: titulo, [cols.description]: descripcion };
+    if (tipo === 'Promociones' && cols.puntos) payload[cols.puntos] = puntosVal;
+    if (cols.vigencia !== undefined) payload[cols.vigencia] = vigVal;
     const { error } = await client.from(table).insert(payload);
     if (error){ alert('Error al crear'); return; }
     await loadItems(tipo);

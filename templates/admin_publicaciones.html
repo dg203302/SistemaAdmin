@@ -23,16 +23,30 @@
         <div class="page-header">
           <div>
             <h1>Administrar publicaciones</h1>
-            <div class="muted">Selecciona qué quieres administrar y presiona Administrar</div>
+            <div class="muted">
+              Selecciona qué quieres administrar y presiona Administrar
+            </div>
           </div>
-          <div class="page-actions admin-toolbar" role="group" aria-label="Selección de módulo a administrar">
-            <select id="opciones" name="opciones" class="input" required aria-label="Elegir módulo">
+          <div
+            class="page-actions admin-toolbar"
+            role="group"
+            aria-label="Selección de módulo a administrar"
+          >
+            <select
+              id="opciones"
+              name="opciones"
+              class="input"
+              required
+              aria-label="Elegir módulo"
+            >
               <option value="" selected hidden>Seleccionar...</option>
               <option value="Avisos">Avisos</option>
               <option value="Promociones">Promociones</option>
               <option value="Ofertas">Ofertas</option>
             </select>
-            <button id="btnAdministrar" class="btn primary" type="button">Administrar</button>
+            <button id="btnAdministrar" class="btn primary" type="button">
+              Administrar
+            </button>
           </div>
         </div>
 
@@ -49,16 +63,20 @@
           </div>
           <div class="body" id="sectionHelper" hidden>
             <span class="badge warning">Config requerida</span>
-            <span class="muted">Faltan las claves de Supabase. Edita <code>scripts/config.js</code>.</span>
+            <span class="muted"
+              >Faltan las claves de Supabase. Edita
+              <code>scripts/config.js</code>.</span
+            >
           </div>
           <div class="table-wrap">
             <table class="table" aria-describedby="sectionTitle">
               <thead>
                 <tr>
-                  <th>Id</th>
                   <th>Título</th>
-                  <th class="hide-sm">Descripción</th>
-                  <th class="right">Acciones</th>
+                  <th>Descripción</th>
+                  <th id="thPuntos" hidden>Puntos</th>
+                  <th>Vigencia</th>
+                  <th class="right" style="text-align: center;">Aciones</th>
                 </tr>
               </thead>
               <tbody id="itemsBody"></tbody>
@@ -77,4 +95,4 @@
     <!-- Lógica de la página -->
     <script src="../scripts/admin_publicaciones.js"></script>
   </body>
-  </html>
+</html>
