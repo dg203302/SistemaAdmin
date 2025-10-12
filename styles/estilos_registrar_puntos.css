@@ -1,0 +1,14 @@
+/* Admin Usuarios: usa tokens y componentes del tema base */
+
+.admin-toolbar { gap: 12px; }
+
+.section-title { margin: 0; font-size: clamp(1.1rem, 1rem + .6vw, 1.4rem); }
+
+.hide-sm { display: table-cell; }
+@media (max-width: 640px) { .hide-sm { display: none; } }
+
+.empty { padding: 18px; color: var(--muted); }
+
+.row-actions { display: flex; gap: 8px; justify-content: center; align-items: center; }
+
+#usuariosBody td { vertical-align: middle; }
