@@ -12,3 +12,5 @@
 .row-actions { display: flex; gap: 8px; justify-content: center; align-items: center; }
 
 #usuariosBody td { vertical-align: middle; }
+/* match vertical alignment for historial table */
+#historialBody td { vertical-align: middle; }

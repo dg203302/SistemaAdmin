@@ -61,8 +61,14 @@
         btnDelete.textContent = 'Eliminar';
         btnDelete.onclick = () => deleteUser(u);
 
+        const btnHistorial = document.createElement('button');
+        btnHistorial.className = 'btn small';
+        btnHistorial.textContent = 'Ver Historial';
+        btnHistorial.onclick = () => VerHistorial(u);
+
         wrap.appendChild(btnEdit);
         wrap.appendChild(btnDelete);
+        wrap.appendChild(btnHistorial);
         tdActions.appendChild(wrap);
         tr.appendChild(tdActions);
 
@@ -182,6 +188,143 @@
             return;
         }
         await listAll();
+    }
+
+    async function VerHistorial(u){
+        const client = ensureSupabase();
+        if (!client){
+            alert('Configura Supabase');
+            return;
+        }
+        const { data, error } = await client
+        .from("Historial_Puntos")
+        .select("*")
+        .eq("Telef_cliente", u['Telef']);
+        if (error){
+            alert('Error al obtener historial');
+            return;
+        }
+        cargarTablaHist(data || []);
+    }
+
+    async function cargarTablaHist(ent){
+        // ent is expected to be an array of historial objects
+        // Ensure the section/container exists in the DOM
+        let section = document.getElementById('historialSection');
+        if (!section){
+            // create a section with same structure as usuariosSection
+            section = document.createElement('section');
+            section.id = 'historialSection';
+            section.className = 'card';
+
+            const header = document.createElement('div');
+            header.className = 'card__header';
+            const title = document.createElement('h2');
+            title.className = 'section-title';
+            title.id = 'historialTitle';
+            title.textContent = 'Historial de Puntos';
+            header.appendChild(title);
+
+            const subtitle = document.createElement('div');
+            subtitle.className = 'muted';
+            if (ent && ent.length > 0){
+                const nombre = await obtenerNombre(ent[0].Telef_cliente);
+                subtitle.textContent = `Nombre: ${nombre} Teléfono: ${ent[0].Telef_cliente}`;
+            }
+            header.appendChild(subtitle);
+
+            section.appendChild(header);
+
+            const container = document.createElement('div');
+            container.id = 'historialContainer';
+            section.appendChild(container);
+            const usuariosSection = document.getElementById('usuariosSection');
+            if (usuariosSection && usuariosSection.parentNode){
+                usuariosSection.parentNode.insertBefore(section, usuariosSection.nextSibling);
+            } else {
+                document.body.appendChild(section);
+            }
+        }
+
+        // create or replace table using same structure/classes as usuarios table
+        const container = document.getElementById('historialContainer') || section;
+        container.innerHTML = '';
+
+        // wrap table in same markup
+        const tableWrap = document.createElement('div');
+        tableWrap.className = 'table-wrap';
+
+        const table = document.createElement('table');
+        table.className = 'table';
+
+        // create header with the requested columns: Telefono Cliente, Nombre Cliente, Fecha Asignacion, Cantidad Puntos, Monto Gastado
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+        const headers = ['Fecha Asignacion', 'Cantidad Puntos', 'Monto Gastado'];
+        for (const h of headers){
+            const th = document.createElement('th');
+            th.textContent = h;
+            // apply same classes as usuarios table where appropriate
+            if (h === 'Fecha Asignacion') th.className = 'hide-sm';
+            if (h === 'Monto Gastado') th.className = 'right';
+            headerRow.appendChild(th);
+        }
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        const tbody = document.createElement('tbody');
+        tbody.id = 'historialBody';
+
+        if (!ent || ent.length === 0){
+            const tr = document.createElement('tr');
+            const td = document.createElement('td');
+            td.colSpan = headers.length;
+            td.innerHTML = '<div class="empty">Sin historial</div>';
+            tr.appendChild(td);
+            tbody.appendChild(tr);
+        } else {
+            for (const row of ent){
+                const tr = document.createElement('tr');
+
+                // Fecha Asignacion (hide on small)
+                const tdFecha = document.createElement('td');
+                tdFecha.className = 'hide-sm';
+                tdFecha.textContent = row['Fecha_asignacion'] ? new Date(row['Fecha_asignacion']).toLocaleString() : (row['Fecha_Asing'] ? new Date(row['Fecha_Asing']).toLocaleString() : (row['Fecha'] ? new Date(row['Fecha']).toLocaleString() : ''));
+                tr.appendChild(tdFecha);
+
+                // Cantidad Puntos
+                const tdPuntos = document.createElement('td');
+                tdPuntos.textContent = (row['Cantidad_Puntos'] ?? row['Puntos'] ?? '') + '';
+                tr.appendChild(tdPuntos);
+
+                // Monto Gastado (align right)
+                const tdMonto = document.createElement('td');
+                tdMonto.className = 'center';
+                tdMonto.textContent = (row['Monto_gastado'] ?? row['Monto'] ?? '') + '';
+                tr.appendChild(tdMonto);
+
+                tbody.appendChild(tr);
+            }
+        }
+
+    table.appendChild(tbody);
+    tableWrap.appendChild(table);
+    container.appendChild(tableWrap);
+    }
+
+    async function obtenerNombre(tele){
+        const client = ensureSupabase();
+        if (!client) return '';
+        const {data, error} = await client
+        .from("Clientes")
+        .select("Nombre")
+        .eq("Telef",tele)
+        .single();
+        if(error){
+            console.error("error al obtener el nombre", error);
+            return '';
+        }
+        return data ? data.Nombre : '';
     }
 
     function init(){
