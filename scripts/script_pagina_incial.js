@@ -38,7 +38,9 @@ async function cargar_actividad_reciente(){
   const contenedor_act = document.getElementById('actividadBody');
   const {data,error} = await client
   .from('Historial_Puntos')
-  .select('*');
+  .select('*')
+  .order("Fecha_Asing", { ascending: false });
+  
   if (error){
     console.error('error al cargar la actividad reciente', error);
     return;
@@ -46,36 +48,74 @@ async function cargar_actividad_reciente(){
   if (!contenedor_act) return;
   contenedor_act.innerHTML = '';
   for (const act of data){
-    contenedor_act.appendChild(renderiz_act(act));
+    contenedor_act.appendChild(await renderiz_act(act));
   }
 }
 
-function renderiz_act(actividad){
+async function renderiz_act(actividad){
   // actividad is expected to have: Telef_cliente, Fecha_Asing, Cantidad_Puntos, Monto_gastado
   const tr = document.createElement('tr');
 
+  const tdNom = document.createElement('td');
+  tdNom.style.textAlign = "center";
+  tdNom.textContent = await obtnom(actividad.Telef_cliente);
+  tr.appendChild(tdNom);
+
   const tdTel = document.createElement('td');
+  tdTel.style.textAlign = "center";
   tdTel.textContent = actividad.Telef_cliente ?? actividad.Telef ?? '';
   tr.appendChild(tdTel);
 
   const tdFecha = document.createElement('td');
-  tdFecha.className = 'hide-sm';
+  tdFecha.style.textAlign = "center";
   tdFecha.textContent = actividad.Fecha_Asing ? new Date(actividad.Fecha_Asing).toLocaleString() : (actividad.Fecha_asignacion ? new Date(actividad.Fecha_asignacion).toLocaleString() : '');
   tr.appendChild(tdFecha);
 
   const tdPuntos = document.createElement('td');
+  tdPuntos.style.textAlign = "center";
   tdPuntos.textContent = (actividad.Cantidad_Puntos ?? actividad.Cantidad_puntos ?? '') + '';
   tr.appendChild(tdPuntos);
 
   const tdMonto = document.createElement('td');
 
-  tdMonto.className = 'right';
+  tdMonto.style.textAlign = "center";
   tdMonto.textContent = (actividad.Monto_gastado ?? actividad.Monto_gasto ?? actividad.Monto ?? '') + '';
   tr.appendChild(tdMonto);
 
     return tr;
   }
 
+async function obtnom(tele){
+  const {data,error} = await client
+  .from("Clientes")
+  .select("Nombre")
+  .eq("Telef",tele)
+  .single()
+  if(error){
+    console.log(error)
+  }
+  else{
+    return data.Nombre;
+  }
+}
+
+function btnexp(){
+  let btn=document.getElementById("boton_exp")
+  let bodytabla = document.getElementById("actividadBody")
+  if (!btn || !bodytabla) return
+  bodytabla.style.maxHeight = "none";
+  bodytabla.style.overflowY = "visible";
+  btn.textContent = "Contraer"
+  btn.onclick = function (){
+    let btn=document.getElementById("boton_exp")
+    let bodytabla = document.getElementById("actividadBody")
+    if (!btn || !bodytabla) return
+    bodytabla.style.maxHeight = "calc(44px * 3)";
+    bodytabla.style.overflowY = "hidden";
+    btn.textContent = "Expandir"
+    btn.onclick = btnexp;
+  }
+}
 window.onload = async function(){
   cargar_cantidades()
   cargar_actividad_reciente()
