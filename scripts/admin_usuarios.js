@@ -14,7 +14,7 @@ import { desencriptar } from './encriptado.js';
         supabaseClient = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
         return supabaseClient;
     }
-
+    function setCreationSectionVisible(v){ const s = $('crearUsuarioSection'); if (s) s.hidden = !v; }
     function setSectionVisible(v){ const s = $('usuariosSection'); if (s) s.hidden = !v; }
     function clearBody(){ const b = $('usuariosBody'); if (b) b.innerHTML = ''; }
 
@@ -388,14 +388,14 @@ import { desencriptar } from './encriptado.js';
     function init(){
         const btnBuscar = $('btnBuscar');
         const btnVerTodos = $('btnVerTodos');
+        const btnAgregar = $('btnAgregar');
         const input = $('q');
         if (btnBuscar) btnBuscar.onclick = searchUsers;
         if (btnVerTodos) btnVerTodos.onclick = listAll;
-        const btnAgregar = $('btnAgregar');
-        if (btnAgregar) btnAgregar.addEventListener('click', () => {
-            const seccion = $('crearUsuarioSection');
-            if (seccion) seccion.style.display = 'block';
-        });
+        if (btnAgregar) btnAgregar.onclick = () => { setCreationSectionVisible(true); 
+            const btncerrar = $('btnCerrarAgregar');
+            if (btncerrar) btncerrar.onclick = () => { setCreationSectionVisible(false); };
+        };
         if (input) input.addEventListener('keydown', (e) => { if (e.key === 'Enter'){ e.preventDefault(); searchUsers(); } });
     }
 
