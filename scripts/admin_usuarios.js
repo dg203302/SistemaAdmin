@@ -255,10 +255,15 @@ import { desencriptar } from './encriptado.js';
             alert('Error al obtener historial');
             return;
         }
+
         cargarTablaHist(data || []);
     }
 
     async function cargarTablaHist(ent){
+        const sec = document.querySelector('#historialSection');
+        if (sec && sec.parentNode) {
+            sec.parentNode.removeChild(sec);
+        }
         // ent is expected to be an array of historial objects
         // Ensure the section/container exists in the DOM
         let section = document.getElementById('historialSection');
