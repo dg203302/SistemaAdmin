@@ -17,7 +17,6 @@ import { desencriptar } from './encriptado.js';
     function setCreationSectionVisible(v){ const s = $('crearUsuarioSection'); if (s) s.hidden = !v; }
     function setSectionVisible(v){ const s = $('usuariosSection'); if (s) s.hidden = !v; }
     function clearBody(){ const b = $('usuariosBody'); if (b) b.innerHTML = ''; }
-
     function renderEmpty(msg){
         const b = $('usuariosBody'); if (!b) return;
         const tr = document.createElement('tr');
@@ -277,6 +276,7 @@ import { desencriptar } from './encriptado.js';
             title.textContent = 'Historial de Puntos';
             header.appendChild(title);
 
+            
             const subtitle = document.createElement('div');
             subtitle.className = 'muted';
             if (ent && ent.length > 0){
@@ -284,7 +284,19 @@ import { desencriptar } from './encriptado.js';
                 subtitle.textContent = `Nombre: ${nombre} Teléfono: ${ent[0].Telef_cliente}`;
             }
             header.appendChild(subtitle);
-
+            
+            const btnCerrar = document.createElement('button');
+            btnCerrar.className = 'btn ghost';
+            btnCerrar.type = 'button';
+            btnCerrar.textContent = 'Cerrar';
+            btnCerrar.onclick = () => {
+                const sec = btnCerrar.closest('#historialSection') || section;
+                if (sec && sec.parentNode) {
+                    sec.parentNode.removeChild(sec);
+                }
+            };
+            header.appendChild(btnCerrar);
+            
             section.appendChild(header);
 
             const container = document.createElement('div');
@@ -400,14 +412,15 @@ import { desencriptar } from './encriptado.js';
         let r3_enc = encriptar(r3);
         const { error } = await client
         .from("Clientes")
-        .insert({ Nombre: nombre, Telef: telefono, Contra: cont_hash, Resp1: r1_enc, Resp2: r2_enc, Resp3: r3_enc });
+        .insert({ Nombre: nombre, Telef: telefono, Contra: cont_hash, Resp_1: r1_enc, Resp_2: r2_enc, Resp_3: r3_enc });
         if (error){
             alert('Error al crear usuario: ' + error.message);
             return;
         }
-    const form = $('crearUsuarioForm');
-    if (form) form.reset();
-    setCreationSectionVisible(false);
+        alert('Cliente creado!');
+        const form = $('crearUsuarioForm');
+        if (form) form.reset();
+        setCreationSectionVisible(false);
        }
     }
     
@@ -440,6 +453,11 @@ import { desencriptar } from './encriptado.js';
         const input = $('q');
         if (btnBuscar) btnBuscar.onclick = searchUsers;
         if (btnVerTodos) btnVerTodos.onclick = listAll;
+
+        // Vincular el botón de cerrar resultados al iniciar (no solo al hacer clic en "Agregar")
+        const btnCerrarResultados = $('btnCerrarResultados');
+        if (btnCerrarResultados) btnCerrarResultados.onclick = () => { clearBody(); setSectionVisible(false); };
+
         if (btnAgregar) btnAgregar.onclick = () => {
             setCreationSectionVisible(true);
             // Scroll to create section (compensa header sticky ~80px)
