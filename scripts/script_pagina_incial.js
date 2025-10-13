@@ -3,10 +3,10 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 const { createClient } = supabase
 const client = createClient(supabaseUrl, supabaseKey)
 
-const cantidad_clientes_activos= document.getElementById(id="clien_act")
-const cantidad_puntos_totales = document.getElementById(id="punt_totales")
-const cantidad_promos_activas = document.getElementById(id="prom_act")
-const cantidad_codigos_sin_valid = document.getElementById(id="codigos_sin_v")
+const cantidad_clientes_activos = document.getElementById('clien_act');
+const cantidad_puntos_totales = document.getElementById('punt_totales');
+const cantidad_promos_activas = document.getElementById('prom_act');
+const cantidad_codigos_sin_valid = document.getElementById('codigos_sin_v');
 
 async function cargar_cantidades(){
   const [clientes, historial_puntos, promos, codigos_promos] = await Promise.all([
@@ -33,4 +33,50 @@ async function cargar_cantidades(){
     cantidad_codigos_sin_valid.textContent = codigos_promos.data.length;
   }
 }
-window.onload = cargar_cantidades()
+
+async function cargar_actividad_reciente(){
+  const contenedor_act = document.getElementById('actividadBody');
+  const {data,error} = await client
+  .from('Historial_Puntos')
+  .select('*');
+  if (error){
+    console.error('error al cargar la actividad reciente', error);
+    return;
+  }
+  if (!contenedor_act) return;
+  contenedor_act.innerHTML = '';
+  for (const act of data){
+    contenedor_act.appendChild(renderiz_act(act));
+  }
+}
+
+function renderiz_act(actividad){
+  // actividad is expected to have: Telef_cliente, Fecha_Asing, Cantidad_Puntos, Monto_gastado
+  const tr = document.createElement('tr');
+
+  const tdTel = document.createElement('td');
+  tdTel.textContent = actividad.Telef_cliente ?? actividad.Telef ?? '';
+  tr.appendChild(tdTel);
+
+  const tdFecha = document.createElement('td');
+  tdFecha.className = 'hide-sm';
+  tdFecha.textContent = actividad.Fecha_Asing ? new Date(actividad.Fecha_Asing).toLocaleString() : (actividad.Fecha_asignacion ? new Date(actividad.Fecha_asignacion).toLocaleString() : '');
+  tr.appendChild(tdFecha);
+
+  const tdPuntos = document.createElement('td');
+  tdPuntos.textContent = (actividad.Cantidad_Puntos ?? actividad.Cantidad_puntos ?? '') + '';
+  tr.appendChild(tdPuntos);
+
+  const tdMonto = document.createElement('td');
+
+  tdMonto.className = 'right';
+  tdMonto.textContent = (actividad.Monto_gastado ?? actividad.Monto_gasto ?? actividad.Monto ?? '') + '';
+  tr.appendChild(tdMonto);
+
+    return tr;
+  }
+
+window.onload = async function(){
+  cargar_cantidades()
+  cargar_actividad_reciente()
+}

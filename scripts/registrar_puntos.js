@@ -113,7 +113,6 @@
         .from("Historial_Puntos")
         .insert([{
             Telef_cliente: u["Telef"],
-            Fecha_Asing: new Date().toISOString(),
             Cantidad_Puntos: calculo_puntos(nuevoConsumo),
             Monto_gastado: nuevoConsumo
         }]);
