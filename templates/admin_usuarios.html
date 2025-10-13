@@ -35,7 +35,7 @@
                     <button id="btnBuscar" class="btn primary" type="button">Buscar</button>
                     <button id="btnVerTodos" class="btn" type="button">Ver todos</button>
                     <div style="flex:1"></div>
-                    <a id="btnAgregar" class="btn" href="./agregar_usuario.html">Agregar usuario</a>
+                    <button id="btnAgregar" class="btn" type="button">Agregar usuario</button>
                 </div>
             </div>
 
@@ -59,7 +59,50 @@
                 </div>
             </section>
             
+            <section id="crearUsuarioSection" class="card">
+                <div class="card__header">
+                    <h2 class="section-title">Crear nuevo usuario</h2>
+                </div>
 
+                <form id="crearUsuarioForm" autocomplete="off" novalidate>
+                    <div class="form-row">
+                        <label for="cuNombre">Nombre</label>
+                        <input id="cuNombre" name="nombre" class="input" type="text" placeholder="Nombre y apellido" required>
+                    </div>
+
+                    <div class="form-row">
+                        <label for="cuTelefono">Nro de teléfono</label>
+                        <input id="cuTelefono" name="telefono" class="input" type="tel" inputmode="numeric" pattern="[0-9]{7,15}" placeholder="Solo números" required>
+                        <small class="muted">Solo números, sin espacios ni guiones.</small>
+                    </div>
+
+                    <div class="form-row">
+                        <label for="cuPassword">Contraseña</label>
+                        <input id="cuPassword" name="password" class="input" type="password" minlength="6" placeholder="Mínimo 6 caracteres" required>
+                    </div>
+
+                    <fieldset class="form-row">
+                        <legend>Respuestas a preguntas de seguridad</legend>
+                        <div>
+                            <label for="cuSeg1">Respuesta 1</label>
+                            <input id="cuSeg1" name="respuesta1" class="input" type="text" required>
+                        </div>
+                        <div>
+                            <label for="cuSeg2">Respuesta 2</label>
+                            <input id="cuSeg2" name="respuesta2" class="input" type="text" required>
+                        </div>
+                        <div>
+                            <label for="cuSeg3">Respuesta 3</label>
+                            <input id="cuSeg3" name="respuesta3" class="input" type="text" required>
+                        </div>
+                    </fieldset>
+
+                    <div class="form-actions" style="margin-top: 0.75rem; display: flex; gap: 0.5rem;">
+                        <button id="btnCrearUsuario" class="btn primary" type="submit">Guardar</button>
+                        <button class="btn ghost" type="reset">Limpiar</button>
+                    </div>
+                </form>
+            </section>
             
         </main>
 
@@ -81,6 +124,6 @@
     <!-- Config (claves) compartida con admin_publicaciones -->
     <script src="../scripts/config.js"></script>
     <!-- Lógica de la página -->
-    <script src="../scripts/admin_usuarios.js"></script>
+    <script type="module" src="../scripts/admin_usuarios.js"></script>
 </body>
 </html>

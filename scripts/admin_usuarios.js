@@ -1,3 +1,6 @@
+import { hash_alfanum } from './hashing.js';
+import { encriptar } from './encriptado.js';
+import { desencriptar } from './encriptado.js';
 (function(){
     /** @type {import('@supabase/supabase-js').SupabaseClient | null} */
     let supabaseClient = null;
@@ -19,7 +22,7 @@
         const b = $('usuariosBody'); if (!b) return;
         const tr = document.createElement('tr');
         const td = document.createElement('td');
-        td.colSpan = 4; td.innerHTML = `<div class="empty">${msg}</div>`;
+        td.colSpan = 5; td.innerHTML = `<div class="empty">${msg}</div>`;
         tr.appendChild(td); b.appendChild(tr);
     }
 
@@ -326,6 +329,61 @@
         }
         return data ? data.Nombre : '';
     }
+    
+    async function onCrearUsuarioSubmit(e){
+        e.preventDefault();
+        const client = ensureSupabase();
+        if (!client){
+            alert('Configura Supabase (scripts/config.js)');
+            return;
+        }
+    
+        const nombre = $('cuNombre')?.value?.trim() || '';
+        const telefono = $('cuTelefono')?.value || '';
+        const password = $('cuPassword')?.value || '';
+        const r1 = $('cuSeg1')?.value?.trim() || '';
+        const r2 = $('cuSeg2')?.value?.trim() || '';
+        const r3 = $('cuSeg3')?.value?.trim() || '';
+       if (verificar_contra(password)){
+        let cont_hash = hash_alfanum(password);
+        let r1_enc = encriptar(r1);
+        let r2_enc = encriptar(r2);
+        let r3_enc = encriptar(r3);
+        const { error } = await client
+        .from("Clientes")
+        .insert({ Nombre: nombre, Telef: telefono, Contra: cont_hash, Resp1: r1_enc, Resp2: r2_enc, Resp3: r3_enc });
+        if (error){
+            alert('Error al crear usuario: ' + error.message);
+            return;
+        }
+        const form = $('crearUsuarioForm');
+        if (form) form.reset();
+        const seccion = $('crearUsuarioSection');
+        if (seccion) seccion.style.display = 'none';
+       }
+    }
+    
+    function verificar_contra(contra){
+        if (contra.length < 4){
+            alert("La Contraseña debe tener como minimo 4 caracteres");
+            return false
+        }
+        else if (contra.length > 10){
+            alert("La contraseña no puede superar los 10 caracteres");
+            return false
+        }
+        else if (!(/\d/.test(contra))){
+            alert("La contraseña debe contener por lo menos un numero");
+            return false
+        }
+        else if (!(/[-_:;!@#$%^&*]/.test(contra))){
+            alert("La contraseña debe tener por lo menos un caracter especial: - _ : ; ! @ # $ % ^ & * ")
+            return false
+        }
+        else{
+            return true
+        }
+    }
 
     function init(){
         const btnBuscar = $('btnBuscar');
@@ -333,6 +391,11 @@
         const input = $('q');
         if (btnBuscar) btnBuscar.onclick = searchUsers;
         if (btnVerTodos) btnVerTodos.onclick = listAll;
+        const btnAgregar = $('btnAgregar');
+        if (btnAgregar) btnAgregar.addEventListener('click', () => {
+            const seccion = $('crearUsuarioSection');
+            if (seccion) seccion.style.display = 'block';
+        });
         if (input) input.addEventListener('keydown', (e) => { if (e.key === 'Enter'){ e.preventDefault(); searchUsers(); } });
     }
 
@@ -340,3 +403,4 @@
         document.addEventListener('DOMContentLoaded', init);
     } else { init(); }
 })();
+
