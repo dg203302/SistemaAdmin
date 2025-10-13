@@ -66,8 +66,8 @@ import { desencriptar } from './encriptado.js';
 
         const btnHistorial = document.createElement('button');
         btnHistorial.className = 'btn small';
-        btnHistorial.textContent = 'Ver Historial';
-        btnHistorial.onclick = () => VerHistorial(u);
+        btnHistorial.textContent = 'Historial';
+        btnHistorial.onclick = () => VerHistorial(u); 
 
         wrap.appendChild(btnEdit);
         wrap.appendChild(btnDelete);
@@ -148,31 +148,80 @@ import { desencriptar } from './encriptado.js';
         }
     }
 
-    async function editUser(u){
-        const client = ensureSupabase();
-        if (!client){
-            alert('Configura Supabase');
-            return;
+        function clearEditor(){ const ed = $('editorContainer'); if (ed){ ed.hidden = true; ed.innerHTML = ''; } }
+        async function editUser(u){
+                const client = ensureSupabase();
+                if (!client){ alert('Configura Supabase'); return; }
+                const ed = $('editorContainer'); if (!ed) return; ed.hidden = false; ed.innerHTML = '';
+                const nombreVal = u['Nombre'] ?? '';
+                const telVal = u['Telef'] ?? '';
+                const puntosVal = u['Puntos'] ?? '';
+                const creadoVal = u['Fecha_creacion'] ? new Date(u['Fecha_creacion']).toLocaleString() : '';
+                ed.innerHTML = `
+                <div class="inline-card" role="region" aria-label="Editar usuario">
+                    <div class="inline-header">
+                        <div class="inline-title">Editar usuario</div>
+                        <button type="button" class="icon-btn" id="btnCloseEditor" aria-label="Cerrar">✕</button>
+                    </div>
+                    <div class="inline-body">
+                        <form class="inline-form" id="inlineForm">
+                            <div class="field field-nombre">
+                                <label for="fNombre">Nombre</label>
+                                <input id="fNombre" type="text" value="${nombreVal.replace(/"/g,'&quot;')}" required />
+                            </div>
+                            <div class="field field-telefono">
+                                <label for="fTel">Teléfono</label>
+                                <input id="fTel" type="tel" inputmode="numeric" pattern="[0-9]{7,15}" value="${telVal.replace(/"/g,'&quot;')}" required />
+                            </div>
+                            <div class="field field-puntos">
+                                <label for="fPuntos">Puntos</label>
+                                <input id="fPuntos" type="number" min="0" step="1" value="${String(puntosVal).replace(/"/g,'&quot;')}" />
+                            </div>
+                            <div class="field field-creacion">
+                                <label>Creación</label>
+                                <input type="text" value="${creadoVal.replace(/"/g,'&quot;')}" disabled />
+                            </div>
+                            <div id="formError" class="error" hidden></div>
+                            <div class="inline-actions">
+                                <button type="submit" class="btn primary" id="btnSubmit">Guardar</button>
+                                <button type="button" class="btn" id="btnCancelar">Cancelar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>`;
+
+                // Scroll to the editor, compensating sticky header (~80px)
+                try {
+                    const top = ed.getBoundingClientRect().top + window.pageYOffset - 80;
+                    window.scrollTo({ top, behavior: 'smooth' });
+                } catch(_) {}
+
+                const form = $('inlineForm');
+                const btnCancelar = $('btnCancelar');
+                const btnClose = $('btnCloseEditor');
+                const errorBox = $('formError');
+                if (btnCancelar) btnCancelar.onclick = () => clearEditor();
+                if (btnClose) btnClose.onclick = () => clearEditor();
+                form.addEventListener('keydown', (e)=>{ if (e.key === 'Escape'){ e.preventDefault(); clearEditor(); } });
+                // Focus first field after render
+                requestAnimationFrame(() => { try { $('fNombre')?.focus({ preventScroll: true }); } catch(_) {} });
+
+                form.onsubmit = async (e) => {
+                        e.preventDefault();
+                        const Nombre = $('fNombre').value.trim();
+                        const Telef = $('fTel').value.replace(/[^0-9]/g,'');
+                        const Puntos = $('fPuntos').value === '' ? null : Number($('fPuntos').value);
+                        if (!Nombre){ errorBox.hidden = false; errorBox.textContent = 'El nombre es obligatorio.'; return; }
+                        if (!Telef){ errorBox.hidden = false; errorBox.textContent = 'El teléfono es obligatorio.'; return; }
+                        errorBox.hidden = true; errorBox.textContent = '';
+                        const btn = $('btnSubmit'); const old = btn.textContent; btn.textContent = 'Guardando...'; btn.disabled = true;
+                        const { error } = await client.from('Clientes').update({ Nombre, Telef, Puntos }).eq('Telef', u['Telef']);
+                        btn.textContent = old; btn.disabled = false;
+                        if (error){ errorBox.hidden = false; errorBox.textContent = 'Error al actualizar.'; return; }
+                        clearEditor();
+                        await listAll();
+                };
         }
-        const nuevoNombre = prompt('Nuevo nombre:', u['Nombre'] ?? '');
-        if (nuevoNombre === null) return;
-
-        const nuevoTel = prompt('Nuevo teléfono:', u['Telef'] ?? '');
-        if (nuevoTel === null) return;
-
-        const nuevoPuntos = prompt('Actualizacion de puntos:', u['Puntos'] ?? '');
-        if (nuevoPuntos === null) return;
-
-        const { error } = await client
-        .from("Clientes")
-        .update({ Nombre: nuevoNombre, Telef: nuevoTel, Puntos: nuevoPuntos })
-        .eq("Telef", u['Telef']);
-        if (error){
-            alert('Error al actualizar');
-            return;
-        }
-        await listAll();
-    }
 
     async function deleteUser(u){
         const client = ensureSupabase();
@@ -356,10 +405,9 @@ import { desencriptar } from './encriptado.js';
             alert('Error al crear usuario: ' + error.message);
             return;
         }
-        const form = $('crearUsuarioForm');
-        if (form) form.reset();
-        const seccion = $('crearUsuarioSection');
-        if (seccion) seccion.style.display = 'none';
+    const form = $('crearUsuarioForm');
+    if (form) form.reset();
+    setCreationSectionVisible(false);
        }
     }
     
@@ -392,9 +440,28 @@ import { desencriptar } from './encriptado.js';
         const input = $('q');
         if (btnBuscar) btnBuscar.onclick = searchUsers;
         if (btnVerTodos) btnVerTodos.onclick = listAll;
-        if (btnAgregar) btnAgregar.onclick = () => { setCreationSectionVisible(true); 
+        if (btnAgregar) btnAgregar.onclick = () => {
+            setCreationSectionVisible(true);
+            // Scroll to create section (compensa header sticky ~80px)
+            const addSection = $('crearUsuarioSection');
+            if (addSection){
+                try {
+                    const top = addSection.getBoundingClientRect().top + window.pageYOffset - 80;
+                    window.scrollTo({ top, behavior: 'smooth' });
+                } catch(_) {}
+            }
+            // Focus primer campo
+            requestAnimationFrame(() => { try { $('cuNombre')?.focus({ preventScroll: true }); } catch(_) {} });
+
             const btncerrar = $('btnCerrarAgregar');
             if (btncerrar) btncerrar.onclick = () => { setCreationSectionVisible(false); };
+
+            // Bind submit una sola vez
+            const form = $('crearUsuarioForm');
+            if (form && !form.dataset.bound){
+                form.addEventListener('submit', onCrearUsuarioSubmit);
+                form.dataset.bound = '1';
+            }
         };
         if (input) input.addEventListener('keydown', (e) => { if (e.key === 'Enter'){ e.preventDefault(); searchUsers(); } });
     }
