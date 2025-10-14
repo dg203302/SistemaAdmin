@@ -19,6 +19,47 @@
   /** @type {import('@supabase/supabase-js').SupabaseClient | null} */
   let supabase = null;
 
+  // SweetAlert2: helper para toasts
+  let __toastMixin = null;
+  function waitForSwal(){
+    return new Promise((resolve) => {
+      const iv = setInterval(() => {
+        if (window.Swal){ clearInterval(iv); resolve(); }
+      }, 50);
+    });
+  }
+  async function ensureSwal(){
+    if (window.Swal) return window.Swal;
+    if (!document.getElementById('swal2-script')){
+      const s = document.createElement('script');
+      s.id = 'swal2-script';
+      s.src = 'https://cdn.jsdelivr.net/npm/sweetalert2@11';
+      document.head.appendChild(s);
+    }
+    await waitForSwal();
+    return window.Swal;
+  }
+  async function showToast(icon, title, opts){
+    try{
+      const Swal = await ensureSwal();
+      if (!__toastMixin){
+        __toastMixin = Swal.mixin({
+          toast: true,
+          position: 'top-end',
+          showConfirmButton: false,
+          timer: 3000,
+          timerProgressBar: true,
+          showCloseButton: true,
+          background: 'var(--bg)',
+          color: 'var(--text)'
+        });
+      }
+      __toastMixin.fire(Object.assign({ icon, title }, opts||{}));
+    } catch(_){
+      try { alert(title); } catch {}
+    }
+  }
+
   function getEl(id){ return document.getElementById(id); }
 
   function ensureSupabase(){
@@ -159,7 +200,8 @@
     const onDelete = async (item) => {
       if (!confirm('¿Eliminar este elemento?')) return;
       const { error: delErr } = await client.from(table).delete().eq(cols.id, item[cols.id]);
-      if (delErr){ alert('Error al eliminar'); return; }
+      if (delErr){ showToast('error', 'Error al eliminar'); return; }
+      showToast('success', 'Elemento eliminado');
       await loadItems(tipo);
     };
 
@@ -174,9 +216,9 @@
 
   function crearItem(tipo){
     const client = ensureSupabase();
-    if (!client) { alert('Configura Supabase primero'); return; }
+    if (!client) { showToast('info', 'Configura Supabase primero'); return; }
     const cfg = CONFIG[tipo];
-    if (!cfg) { alert('Tipo no soportado'); return; }
+    if (!cfg) { showToast('warning', 'Tipo no soportado'); return; }
     const { table, cols } = cfg;
     openInlineForm('create', tipo, cols, null, client, table);
   }
@@ -225,15 +267,28 @@
               </div>
             ` : ''}
             ${cols.emoji ? `
-              <div class="field field-emoji">
+              <div class="field field-emoji" style="position:relative;">
                 <label for="fEmoji">Emoji</label>
-                <input id="fEmoji" type="text" class="w-emoji" value="${escapeAttr(emojiVal)}" placeholder="p.ej. 🎉" />
+                <div class="emoji-input-row">
+                  <input id="fEmoji" type="text" class="w-emoji" value="${escapeAttr(emojiVal)}" placeholder="p.ej. 🎉" />
+                  <button type="button" class="btn small" id="btnEmojiPicker" aria-haspopup="dialog" aria-expanded="false">Seleccionar</button>
+                </div>
+                <div id="emojiPickerContainer" class="emoji-picker-container" hidden style="position:absolute; right:0; top:calc(100% + 6px); z-index: 9999; background:#fff; border:1px solid rgba(0,0,0,0.08); border-radius:10px; box-shadow:0 10px 24px rgba(0,0,0,0.18);">
+                </div>
               </div>
             ` : ''}
-            <div class="field field-vigencia">
-              <label for="fVig">Vigencia</label>
-              <input id="fVig" type="text" value="${escapeAttr(vigVal)}" placeholder="p.ej. 2025-12-31 o 30 días" />
-            </div>
+            ${isPromo && mode === 'create' ? `
+              <div class="field field-vigencia">
+                <label for="fVigDate">Vigencia</label>
+                <input id="fVigDate" type="date" value="${escapeAttr(dmyToIso(vigVal))}" />
+                <div class="inline-hint">Formato guardado: dd/mm/aaaa</div>
+              </div>
+            ` : `
+              <div class="field field-vigencia">
+                <label for="fVig">Vigencia</label>
+                <input id="fVig" type="text" value="${escapeAttr(vigVal)}" placeholder="p.ej. 2025-12-31 o 30 días" />
+              </div>
+            `}
             <div id="formError" class="error" hidden></div>
             <div class="inline-actions">
               <button type="submit" class="btn primary" id="btnSubmit">${mode === 'create' ? 'Crear' : 'Guardar'}</button>
@@ -244,12 +299,115 @@
       </div>
     `;
 
-    const form = document.getElementById('inlineForm');
-    const btnCancelar = document.getElementById('btnCancelar');
-    const btnClose = document.getElementById('btnCloseEditor');
-    const errorBox = document.getElementById('formError');
-    if (btnCancelar) btnCancelar.onclick = () => clearEditor();
-    if (btnClose) btnClose.onclick = () => clearEditor();
+  const form = document.getElementById('inlineForm');
+  const btnCancelar = document.getElementById('btnCancelar');
+  const btnClose = document.getElementById('btnCloseEditor');
+  const errorBox = document.getElementById('formError');
+  // Podremos cerrar un portal si existe (se define más abajo en wiring del picker)
+  let closePortal = null;
+  if (btnCancelar) btnCancelar.onclick = () => { if (typeof closePortal === 'function') closePortal(); clearEditor(); };
+  if (btnClose) btnClose.onclick = () => { if (typeof closePortal === 'function') closePortal(); clearEditor(); };
+    // Emoji Picker wiring (Promociones/Ofertas usan cols.emoji) con portal al <body>
+    if (cols.emoji) {
+      const btnEmoji = document.getElementById('btnEmojiPicker');
+      const inputEmoji = document.getElementById('fEmoji');
+      if (btnEmoji && inputEmoji) {
+        let portalEl = null;
+        let removeOutside = null;
+        let removeKeydown = null;
+        let removeReposition = null;
+
+        function positionPortal() {
+          if (!portalEl) return;
+          const rect = btnEmoji.getBoundingClientRect();
+          const margin = 6;
+          const vw = window.innerWidth;
+          const vh = window.innerHeight;
+          // medir dimensiones del portal
+          const w = portalEl.offsetWidth || 320;
+          const h = portalEl.offsetHeight || 380;
+          let left = rect.left; // alineado a la izquierda del botón
+          // evitar overflow horizontal
+          if (left + w + 8 > vw) left = Math.max(8, vw - w - 8);
+          if (left < 8) left = 8;
+          let top = rect.bottom + margin; // por debajo del botón
+          if (top + h + 8 > vh) {
+            // si no cabe abajo, mostrar arriba
+            top = Math.max(8, rect.top - margin - h);
+          }
+          portalEl.style.left = `${Math.round(left)}px`;
+          portalEl.style.top = `${Math.round(top)}px`;
+        }
+
+        function openPortal() {
+          if (portalEl) return;
+          loadEmojiPickerElement().then(() => {
+            portalEl = document.createElement('div');
+            portalEl.className = 'emoji-picker-portal';
+            portalEl.setAttribute('role', 'dialog');
+            portalEl.style.position = 'fixed';
+            portalEl.style.zIndex = '2147483647';
+            portalEl.style.background = '#fff';
+            portalEl.style.border = '1px solid rgba(0,0,0,0.08)';
+            portalEl.style.borderRadius = '10px';
+            portalEl.style.boxShadow = '0 10px 24px rgba(0,0,0,0.18)';
+            portalEl.style.maxHeight = '70vh';
+            portalEl.style.overflow = 'hidden';
+            // crear picker dentro del portal
+            const picker = document.createElement('emoji-picker');
+            portalEl.appendChild(picker);
+            document.body.appendChild(portalEl);
+
+            // posicionar después de montar para tener medidas
+            positionPortal();
+
+            // eventos
+            const onEmoji = (event) => {
+              inputEmoji.value += event.detail.unicode || '';
+              inputEmoji.focus();
+              closePortal();
+            };
+            picker.addEventListener('emoji-click', onEmoji);
+
+            const outside = (ev) => {
+              if (portalEl && !portalEl.contains(ev.target) && ev.target !== btnEmoji) {
+                closePortal();
+              }
+            };
+            document.addEventListener('mousedown', outside);
+            removeOutside = () => document.removeEventListener('mousedown', outside);
+
+            const onKey = (ev) => { if (ev.key === 'Escape') closePortal(); };
+            document.addEventListener('keydown', onKey);
+            removeKeydown = () => document.removeEventListener('keydown', onKey);
+
+            const onReposition = () => positionPortal();
+            window.addEventListener('scroll', onReposition, true);
+            window.addEventListener('resize', onReposition);
+            removeReposition = () => {
+              window.removeEventListener('scroll', onReposition, true);
+              window.removeEventListener('resize', onReposition);
+            };
+
+            btnEmoji.setAttribute('aria-expanded', 'true');
+          }).catch(() => {/* silencioso */});
+        }
+
+        closePortal = function closePortalFn() {
+          if (!portalEl) return;
+          try { if (removeOutside) removeOutside(); } catch {}
+          try { if (removeKeydown) removeKeydown(); } catch {}
+          try { if (removeReposition) removeReposition(); } catch {}
+          if (portalEl.parentNode) portalEl.parentNode.removeChild(portalEl);
+          portalEl = null;
+          btnEmoji.setAttribute('aria-expanded', 'false');
+        };
+
+        btnEmoji.addEventListener('click', () => {
+          if (portalEl) closePortal(); else openPortal();
+        });
+      }
+    }
 
     // Cancelar con Escape
     form.addEventListener('keydown', (e)=>{ if (e.key === 'Escape') { e.preventDefault(); clearEditor(); } });
@@ -261,7 +419,13 @@
   const puntos = isPromo ? document.getElementById('fPuntos').value : undefined;
   const flotante = cols.flotante ? document.getElementById('fFlot')?.value.trim() : undefined;
   const emoji = cols.emoji ? document.getElementById('fEmoji')?.value.trim() : undefined;
-      const vig = document.getElementById('fVig').value.trim();
+      let vig;
+      if (isPromo && mode === 'create') {
+        const iso = document.getElementById('fVigDate').value;
+        vig = iso ? isoToDmy(iso) : '';
+      } else {
+        vig = document.getElementById('fVig').value.trim();
+      }
 
       // Validaciones básicas
       if (!titulo){ errorBox.hidden = false; errorBox.textContent = 'El título es obligatorio.'; return; }
@@ -289,7 +453,14 @@
       }
       btnSubmit.textContent = oldLabel;
       btnSubmit.disabled = false;
-      if (err){ errorBox.hidden = false; errorBox.textContent = 'Error al guardar. Revisa los datos.'; return; }
+      if (err){
+        errorBox.hidden = false;
+        errorBox.textContent = 'Error al guardar. Revisa los datos.';
+        showToast('error', 'No se pudo guardar');
+        return;
+      }
+      showToast('success', mode === 'create' ? 'Creado correctamente' : 'Actualizado correctamente');
+      if (typeof closePortal === 'function') closePortal();
       clearEditor();
       await loadItems(tipo);
     };
@@ -301,6 +472,49 @@
   function escapeAttr(s){
     return String(s).replace(/"/g, '&quot;');
   }
+  // Carga dinámica del web component 'emoji-picker-element'
+  function loadEmojiPickerElement(){
+    const tag = 'emoji-picker';
+    // Si ya está definido, no cargamos de nuevo
+    if (window.customElements && customElements.get(tag)) return Promise.resolve();
+    // Evitar cargar script más de una vez
+    if (document.getElementById('emoji-picker-script')) {
+      return waitForCustomElement(tag);
+    }
+    const script = document.createElement('script');
+    script.type = 'module';
+    script.id = 'emoji-picker-script';
+    script.src = 'https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js';
+    document.head.appendChild(script);
+    return waitForCustomElement(tag);
+  }
+  function waitForCustomElement(tag){
+    if (window.customElements && customElements.get(tag)) return Promise.resolve();
+    return new Promise((resolve) => {
+      const iv = setInterval(() => {
+        if (window.customElements && customElements.get(tag)){
+          clearInterval(iv);
+          resolve();
+        }
+      }, 50);
+    });
+  }
+  // Convierte 'yyyy-mm-dd' -> 'dd/mm/aaaa'
+  function isoToDmy(iso){
+    if (!iso || typeof iso !== 'string') return '';
+    const parts = iso.split('-');
+    if (parts.length !== 3) return '';
+    const [y, m, d] = parts;
+    return `${d.padStart(2,'0')}/${m.padStart(2,'0')}/${y}`;
+  }
+  // Convierte 'dd/mm/aaaa' -> 'yyyy-mm-dd' para precargar en <input type="date">
+  function dmyToIso(dmy){
+    if (!dmy || typeof dmy !== 'string') return '';
+    const parts = dmy.split('/');
+    if (parts.length !== 3) return '';
+    const [d, m, y] = parts;
+    return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  }
 
   function init(){
     const btnAdmin = document.getElementById('btnAdministrar');
@@ -311,7 +525,7 @@
 
     btnAdmin.addEventListener('click', async () => {
       const tipo = sel.value;
-      if (!tipo){ alert('Selecciona una opción'); return; }
+      if (!tipo){ showToast('info', 'Selecciona una opción'); return; }
 
       setTitle(tipo);
       const sectionEl = document.getElementById('adminSection');

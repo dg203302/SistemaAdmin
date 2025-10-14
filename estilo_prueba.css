@@ -186,3 +186,47 @@ body {
 
 /* Utilidades */
 .sr-only { position: absolute !important; width: 1px; height: 1px; clip: rect(1px,1px,1px,1px); overflow: hidden; white-space: nowrap; }
+
+/* SweetAlert2 theming para que coincida con el fondo de la página */
+.swal2-popup {
+  background: var(--bg) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+.swal2-title,
+.swal2-html-container,
+.swal2-content { color: var(--text) !important; }
+.swal2-input,
+.swal2-textarea,
+.swal2-select {
+  background: var(--bg) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-sm) !important;
+}
+.swal2-input::placeholder,
+.swal2-textarea::placeholder {
+  color: color-mix(in oklab, var(--muted) 70%, var(--text)) !important;
+}
+.swal2-confirm, .swal2-cancel, .swal2-deny {
+  border-radius: 12px !important;
+  font-weight: 700 !important;
+}
+.swal2-confirm {
+  background: linear-gradient(135deg, var(--brand), var(--brand-600)) !important;
+  border: 1px solid color-mix(in oklab, var(--brand) 40%, var(--border)) !important;
+  color: #fff !important;
+}
+.swal2-cancel, .swal2-deny {
+  background: var(--panel) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+}
+.swal2-toast {
+  background: var(--bg) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+.swal2-timer-progress-bar { background: color-mix(in oklab, var(--brand) 50%, transparent) !important; }

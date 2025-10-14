@@ -138,7 +138,55 @@ function adjustTabContentHeight(){
 window.adjustTabContentHeight = adjustTabContentHeight;
 window.onload = async function(){
   cargar_cantidades()
-  await cargar_actividad_reciente()
-  // asegura altura correcta al iniciar
-  try { adjustTabContentHeight(); } catch(_) {}
+  cargar_actividad_reciente()
+}
+
+document.getElementById("validarCodigos").onclick = async function(){
+  const { value: CodigoPromo, isConfirmed } = await Swal.fire({
+    title: 'Ingresa el codigo de la promoción',
+    input: 'text',
+    inputPlaceholder: 'Código de promoción',
+    inputAttributes: { autocapitalize: 'off' },
+    showCancelButton: true,
+    confirmButtonText: 'Validar',
+    inputValidator: (value) => !value && 'El código es requerido'
+  });
+
+  if (!isConfirmed || !CodigoPromo) {
+    return;
+  }
+
+  const { data, error } = await client
+  .from('Codigos_promos_puntos')
+  .update({ Canjeado: 1 })
+  .eq('codigo_canjeado', CodigoPromo)
+  .eq('Canjeado', 0)
+  .select();
+
+  if (error) {
+    Swal.fire({
+      title: 'Error',
+      text: 'Error al validar el código',
+      icon: 'error',
+      confirmButtonText: 'OK'
+    });
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    Swal.fire({
+      title: 'No válido',
+      text: 'Código no encontrado o ya fue canjeado',
+      icon: 'warning',
+      confirmButtonText: 'OK'
+    });
+    return;
+  }
+
+  Swal.fire({
+    title: 'Éxito',
+    text: 'Código validado correctamente',
+    icon: 'success',
+    confirmButtonText: 'OK'
+  });
 }
