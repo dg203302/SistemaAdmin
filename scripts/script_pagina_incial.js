@@ -50,6 +50,8 @@ async function cargar_actividad_reciente(){
   for (const act of data){
     contenedor_act.appendChild(await renderiz_act(act));
   }
+  // Ajustar alto del contenedor de tabs para que no corte el contenido
+  try { window.adjustTabContentHeight?.(); } catch(_) {}
 }
 
 async function renderiz_act(actividad){
@@ -114,9 +116,29 @@ function btnexp(){
     bodytabla.style.overflowY = "hidden";
     btn.textContent = "Expandir"
     btn.onclick = btnexp;
+    // readjust height when collapsing
+    try { window.adjustTabContentHeight?.(); } catch(_) {}
   }
+  // readjust height after expanding, on next frame
+  try { requestAnimationFrame(() => window.adjustTabContentHeight?.()); } catch(_) {}
 }
+// Ajusta la altura visible del contenedor de tabs al alto del panel activo
+function adjustTabContentHeight(){
+  const container = document.querySelector('.tabs .tab-content');
+  const active = document.querySelector('.tab-panel.active');
+  if (!container || !active) return;
+  // medir altura visible del contenido interno (no el scroll total)
+  const style = window.getComputedStyle(active);
+  const padTop = parseFloat(style.paddingTop) || 0;
+  const padBottom = parseFloat(style.paddingBottom) || 0;
+  const inner = active.querySelector('.table-wrap') || active.firstElementChild || active;
+  const visibleH = (inner.clientHeight || inner.scrollHeight) + padTop + padBottom;
+  container.style.height = visibleH + 'px';
+}
+window.adjustTabContentHeight = adjustTabContentHeight;
 window.onload = async function(){
   cargar_cantidades()
-  cargar_actividad_reciente()
+  await cargar_actividad_reciente()
+  // asegura altura correcta al iniciar
+  try { adjustTabContentHeight(); } catch(_) {}
 }

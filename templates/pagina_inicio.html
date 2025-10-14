@@ -78,29 +78,80 @@
 
         
 
-        <!-- Actividad reciente -->
+        <!-- Actividad reciente + Tabs de códigos -->
         <section class="card" aria-labelledby="actividad-title">
             <header class="card__header">
-                <h2 id="actividad-title">Actividad reciente</h2>
-                    <div style="display: flex;flex-direction: row;justify-content: center;">
-                        <button class="action" onclick="cargar_actividad_reciente()">🔄</button>
-                        <button class="action" id="boton_exp" onclick="btnexp()">Expandir</button>
-                    </div>
-            </header>
-            <div class="table-wrap">
-                    <table class="table" aria-describedby="actividadTitle">
-                        <thead>
-                            <tr>
-                                <th>Nombre</th>
-                                <th>Telefono</th>
-                                <th>Fecha Asignacion</th>
-                                <th>Puntos</th>
-                                <th>Monto registrado</th>
-                            </tr>
-                        </thead>
-                        <tbody id="actividadBody"></tbody>
-                    </table>
+                <h2 id="actividad-title">Registros y códigos</h2>
+                <div style="display: flex;flex-direction: row;justify-content: center;gap:8px;">
+                    <button class="action" onclick="cargar_actividad_reciente()" title="Recargar actividad">🔄</button>
+                    <button class="action" id="boton_exp" onclick="btnexp()" title="Expandir/Contraer actividad">Expandir</button>
                 </div>
+            </header>
+
+            <div class="tabs">
+                <div class="tab-buttons" role="tablist" aria-label="Cambiar tabla visible">
+                    <button class="tab-btn active" role="tab" aria-selected="true" data-tab-target="#tab-historial">📜 Historial</button>
+                    <button class="tab-btn" role="tab" aria-selected="false" data-tab-target="#tab-sin-validar">❌ Códigos sin validar</button>
+                    <button class="tab-btn" role="tab" aria-selected="false" data-tab-target="#tab-validados">✅ Códigos validados</button>
+                </div>
+
+                <div class="tab-content">
+                    <!-- Panel: Historial (se carga desde la base de datos) -->
+                    <div id="tab-historial" class="tab-panel active" role="tabpanel" aria-labelledby="tab-historial-btn">
+                        <div class="table-wrap">
+                            <table class="table" aria-describedby="actividad-title">
+                                <thead>
+                                    <tr>
+                                        <th>Nombre</th>
+                                        <th>Telefono</th>
+                                        <th>Fecha Asignacion</th>
+                                        <th>Puntos</th>
+                                        <th>Monto registrado</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="actividadBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Panel: Códigos sin validar (datos de muestra por ahora) -->
+                    <div id="tab-sin-validar" class="tab-panel" role="tabpanel">
+                        <div class="table-wrap">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Código</th>
+                                        <th>Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td>ABC123</td><td>Pendiente</td></tr>
+                                    <tr><td>XYZ789</td><td>Pendiente</td></tr>
+                                    <tr><td>LMN456</td><td>Pendiente</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Panel: Códigos validados (datos de muestra por ahora) -->
+                    <div id="tab-validados" class="tab-panel" role="tabpanel">
+                        <div class="table-wrap">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Código</th>
+                                        <th>Fecha validación</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td>QWE456</td><td>2025-10-10</td></tr>
+                                    <tr><td>RTY111</td><td>2025-10-12</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </section>
         
     </main>
@@ -123,6 +174,48 @@
             logoutBtn?.addEventListener('click', () => {
                 sessionStorage.removeItem('ingreso');
                 window.location.href = '../index.html';
+            });
+        })();
+        // Tabs: manejar animación de deslizamiento y estado activo
+        (function(){
+            const btns = document.querySelectorAll('.tab-buttons .tab-btn');
+            const panels = document.querySelectorAll('.tab-panel');
+            let activeBtn = document.querySelector('.tab-buttons .tab-btn.active');
+            let activePanel = document.querySelector('.tab-panel.active');
+            if (!btns.length || !panels.length) return;
+            btns.forEach((btn, idx) => {
+                btn.addEventListener('click', () => {
+                    if (btn === activeBtn) return;
+                    const targetSel = btn.getAttribute('data-tab-target');
+                    const target = document.querySelector(targetSel);
+                    if (!target) return;
+
+                    // actualizar botón activo
+                    activeBtn?.classList.remove('active');
+                    btn.classList.add('active');
+                    const prevIdx = Array.from(btns).indexOf(activeBtn);
+                    activeBtn = btn;
+
+                    // animar salida del panel actual
+                    activePanel?.classList.remove('active');
+                    const goingRight = idx > prevIdx; // derecha => panel actual sale a la izquierda
+                    activePanel?.classList.add(goingRight ? 'exit-left' : 'exit-right');
+
+                    // luego activar el nuevo
+                    setTimeout(() => {
+                        activePanel?.classList.remove('exit-left','exit-right');
+                        // preparar entrada del nuevo panel según dirección
+                        target.classList.remove('from-left');
+                        if (!goingRight) target.classList.add('from-left');
+                        // activar
+                        target.classList.add('active');
+                        // limpiar helper
+                        setTimeout(()=> target.classList.remove('from-left'), 10);
+                        activePanel = target;
+                        // ajustar alto del contenedor
+                        try { window.adjustTabContentHeight?.(); } catch(_) {}
+                    }, 350);
+                });
             });
         })();
     </script>

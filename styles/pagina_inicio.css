@@ -119,6 +119,19 @@ body {
 .card__header { display:flex; align-items:center; justify-content: space-between; gap: 12px; padding: var(--pad-lg); border-bottom: 1px solid var(--border); }
 .card > .quick-actions, .card > .table-wrap, .card > .grid, .card > .body { padding: var(--pad-lg); }
 
+/* Tabs dentro de tarjetas */
+.tabs { display: grid; gap: 0; }
+.tab-buttons { display: flex; background: var(--panel); border-bottom: 1px solid var(--border); }
+.tab-buttons .tab-btn { flex: 1; padding: 12px 14px; border: 0; background: transparent; color: var(--muted); font-weight: 700; cursor: pointer; transition: background .2s ease, color .2s ease; }
+.tab-buttons .tab-btn:hover { background: var(--elev-1); color: var(--text); }
+.tab-buttons .tab-btn.active { background: linear-gradient(180deg, color-mix(in oklab, var(--brand) 22%, transparent), transparent), var(--surface); color: var(--text); }
+.tab-content { position: relative; overflow: hidden; height: auto; min-height: 260px; transition: height .25s ease; }
+.tab-panel { position: absolute; inset: 0; opacity: 0; transform: translateX(100%); transition: transform .35s ease, opacity .35s ease; padding: var(--pad-lg); }
+.tab-panel.from-left { transform: translateX(-100%); }
+.tab-panel.active { opacity: 1; transform: translateX(0); }
+.tab-panel.exit-left { transform: translateX(-100%); opacity: 0; }
+.tab-panel.exit-right { transform: translateX(100%); opacity: 0; }
+
 .kpi { padding: var(--pad-lg); display: grid; gap: 6px; background: linear-gradient(180deg, rgba(124,92,255,.08), rgba(124,92,255,0) 40%), var(--surface); }
 .kpi header { color: var(--muted); font-weight: 600; }
 .kpi__value { font-size: clamp(1.4rem, 1.1rem + 1.2vw, 2rem); font-weight: 800; letter-spacing: .3px; }
@@ -252,10 +265,8 @@ img{
 .table tbody tr { height: var(--row-h); }
 
 /* Scroll del cuerpo: 4 filas visibles */
-.table tbody {
-  max-height: calc(var(--row-h) * var(--rows-visible));
-  overflow-y: hidden;
-}
+/* Por defecto mostramos 3 filas en tablas con scroll; la pestaña Historial puede expandir esto vía JS */
+.table tbody { max-height: calc(var(--row-h) * var(--rows-visible)); overflow-y: hidden; }
 
 /* Estética básica */
 .table th, .table td {

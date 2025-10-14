@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Panel de Tablas</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f3f4f6;
+      color: #333;
+      margin: 0;
+      padding: 40px;
+    }
+
+    .tabs-container {
+      max-width: 900px;
+      margin: auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+
+    /* Botones */
+    .tab-buttons {
+      display: flex;
+      justify-content: space-around;
+      background: #1e293b;
+    }
+
+    .tab-buttons button {
+      flex: 1;
+      padding: 15px;
+      border: none;
+      background: transparent;
+      color: #cbd5e1;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .tab-buttons button:hover {
+      background: #334155;
+      color: white;
+    }
+
+    .tab-buttons button.active {
+      background: #0ea5e9;
+      color: white;
+    }
+
+    /* Contenedor */
+    .tab-content {
+      position: relative;
+      overflow: hidden;
+      height: 320px;
+      padding: 20px;
+    }
+
+    .tab-panel {
+      position: absolute;
+      top: 0;
+      left: 100%;
+      width: 100%;
+      height: 100%;
+      background: #fff;
+      padding: 20px;
+      box-sizing: border-box;
+      opacity: 0;
+      transform: translateX(100%);
+      transition: all 0.5s ease;
+    }
+
+    .tab-panel.active {
+      left: 0;
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .tab-panel.exit-left {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+
+    .tab-panel.exit-right {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+
+    /* Tablas */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    th {
+      background: #0ea5e9;
+      color: white;
+      padding: 12px;
+      text-align: left;
+      font-size: 14px;
+    }
+
+    td {
+      border-bottom: 1px solid #e5e7eb;
+      padding: 10px;
+      font-size: 14px;
+    }
+
+    tr:hover {
+      background: #f1f5f9;
+    }
+
+    h3 {
+      margin-top: 0;
+      color: #0f172a;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="tabs-container">
+    <div class="tab-buttons">
+      <button class="active" data-tab="historial">📜 Historial</button>
+      <button data-tab="sin-validar">❌ Códigos sin validar</button>
+      <button data-tab="validados">✅ Códigos validados</button>
+    </div>
+
+    <div class="tab-content">
+      <div id="historial" class="tab-panel active">
+        <table>
+          <tr><th>ID</th><th>Fecha</th><th>Acción</th></tr>
+          <tr><td>1</td><td>2025-10-01</td><td>Compra</td></tr>
+          <tr><td>2</td><td>2025-10-02</td><td>Canje</td></tr>
+        </table>
+      </div>
+
+      <div id="sin-validar" class="tab-panel">
+        <table>
+          <tr><th>Código</th><th>Estado</th></tr>
+          <tr><td>ABC123</td><td>Pendiente</td></tr>
+          <tr><td>XYZ789</td><td>Pendiente</td></tr>
+        </table>
+      </div>
+
+      <div id="validados" class="tab-panel">
+        <table>
+          <tr><th>Código</th><th>Fecha validación</th></tr>
+          <tr><td>QWE456</td><td>2025-10-10</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const buttons = document.querySelectorAll('.tab-buttons button');
+    const panels = document.querySelectorAll('.tab-panel');
+    let activePanel = document.querySelector('.tab-panel.active');
+    let activeBtn = document.querySelector('.tab-buttons button.active');
+
+    buttons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (btn === activeBtn) return;
+
+        // cambiar botón activo
+        activeBtn.classList.remove('active');
+        btn.classList.add('active');
+        activeBtn = btn;
+
+        // panel destino
+        const targetId = btn.getAttribute('data-tab');
+        const targetPanel = document.getElementById(targetId);
+
+        // salida del panel actual
+        activePanel.classList.remove('active');
+        activePanel.classList.add('exit-left');
+
+        setTimeout(() => {
+          activePanel.classList.remove('exit-left', 'exit-right');
+          targetPanel.classList.add('active');
+          activePanel = targetPanel;
+        }, 500);
+      });
+    });
+  </script>
+
+</body>
+</html>
