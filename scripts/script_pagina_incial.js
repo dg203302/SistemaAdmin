@@ -135,7 +135,20 @@ function adjustTabContentHeight(){
   const visibleH = (inner.clientHeight || inner.scrollHeight) + padTop + padBottom;
   container.style.height = visibleH + 'px';
 }
+
+document.querySelectorAll(".tab-btn").forEach(btn => {
+          btn.addEventListener("click", () => {
+            document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+            document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+            btn.classList.add("active");
+            const target = document.querySelector(btn.dataset.tabTarget);
+            if (target) target.classList.add("active");
+            try { window.adjustTabContentHeight?.(); } catch(_) {}
+          });
+        });
+
 window.adjustTabContentHeight = adjustTabContentHeight;
+
 window.onload = async function(){
   cargar_cantidades()
   cargar_actividad_reciente()
