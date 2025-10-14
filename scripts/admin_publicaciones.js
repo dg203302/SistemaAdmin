@@ -19,6 +19,47 @@
   /** @type {import('@supabase/supabase-js').SupabaseClient | null} */
   let supabase = null;
 
+  // SweetAlert2: helper para toasts
+  let __toastMixin = null;
+  function waitForSwal(){
+    return new Promise((resolve) => {
+      const iv = setInterval(() => {
+        if (window.Swal){ clearInterval(iv); resolve(); }
+      }, 50);
+    });
+  }
+  async function ensureSwal(){
+    if (window.Swal) return window.Swal;
+    if (!document.getElementById('swal2-script')){
+      const s = document.createElement('script');
+      s.id = 'swal2-script';
+      s.src = 'https://cdn.jsdelivr.net/npm/sweetalert2@11';
+      document.head.appendChild(s);
+    }
+    await waitForSwal();
+    return window.Swal;
+  }
+  async function showToast(icon, title, opts){
+    try{
+      const Swal = await ensureSwal();
+      if (!__toastMixin){
+        __toastMixin = Swal.mixin({
+          toast: true,
+          position: 'top-end',
+          showConfirmButton: false,
+          timer: 3000,
+          timerProgressBar: true,
+          showCloseButton: true,
+          background: 'var(--bg)',
+          color: 'var(--text)'
+        });
+      }
+      __toastMixin.fire(Object.assign({ icon, title }, opts||{}));
+    } catch(_){
+      try { alert(title); } catch {}
+    }
+  }
+
   function getEl(id){ return document.getElementById(id); }
 
   function ensureSupabase(){
@@ -159,7 +200,8 @@
     const onDelete = async (item) => {
       if (!confirm('¿Eliminar este elemento?')) return;
       const { error: delErr } = await client.from(table).delete().eq(cols.id, item[cols.id]);
-      if (delErr){ alert('Error al eliminar'); return; }
+      if (delErr){ showToast('error', 'Error al eliminar'); return; }
+      showToast('success', 'Elemento eliminado');
       await loadItems(tipo);
     };
 
@@ -174,9 +216,9 @@
 
   function crearItem(tipo){
     const client = ensureSupabase();
-    if (!client) { alert('Configura Supabase primero'); return; }
+    if (!client) { showToast('info', 'Configura Supabase primero'); return; }
     const cfg = CONFIG[tipo];
-    if (!cfg) { alert('Tipo no soportado'); return; }
+    if (!cfg) { showToast('warning', 'Tipo no soportado'); return; }
     const { table, cols } = cfg;
     openInlineForm('create', tipo, cols, null, client, table);
   }
@@ -411,7 +453,13 @@
       }
       btnSubmit.textContent = oldLabel;
       btnSubmit.disabled = false;
-      if (err){ errorBox.hidden = false; errorBox.textContent = 'Error al guardar. Revisa los datos.'; return; }
+      if (err){
+        errorBox.hidden = false;
+        errorBox.textContent = 'Error al guardar. Revisa los datos.';
+        showToast('error', 'No se pudo guardar');
+        return;
+      }
+      showToast('success', mode === 'create' ? 'Creado correctamente' : 'Actualizado correctamente');
       if (typeof closePortal === 'function') closePortal();
       clearEditor();
       await loadItems(tipo);
@@ -477,7 +525,7 @@
 
     btnAdmin.addEventListener('click', async () => {
       const tipo = sel.value;
-      if (!tipo){ alert('Selecciona una opción'); return; }
+      if (!tipo){ showToast('info', 'Selecciona una opción'); return; }
 
       setTitle(tipo);
       const sectionEl = document.getElementById('adminSection');

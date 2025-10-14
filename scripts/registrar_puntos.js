@@ -2,6 +2,47 @@
     /** @type {import('@supabase/supabase-js').SupabaseClient | null} */
     let supabaseClient = null;
 
+    // SweetAlert2: helper para toasts (carga por CDN si no existe)
+    let __toastMixin = null;
+    function waitForSwal(){
+        return new Promise((resolve) => {
+            const iv = setInterval(() => {
+                if (window.Swal){ clearInterval(iv); resolve(); }
+            }, 50);
+        });
+    }
+    async function ensureSwal(){
+        if (window.Swal) return window.Swal;
+        if (!document.getElementById('swal2-script')){
+            const s = document.createElement('script');
+            s.id = 'swal2-script';
+            s.src = 'https://cdn.jsdelivr.net/npm/sweetalert2@11';
+            document.head.appendChild(s);
+        }
+        await waitForSwal();
+        return window.Swal;
+    }
+    async function showToast(icon, title, opts){
+        try{
+            const Swal = await ensureSwal();
+            if (!__toastMixin){
+                __toastMixin = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true,
+                    showCloseButton: true,
+                    background: 'var(--bg)',
+                    color: 'var(--text)'
+                });
+            }
+            __toastMixin.fire(Object.assign({ icon, title }, opts||{}));
+        } catch(_){
+            try { alert(title); } catch {}
+        }
+    }
+
     function $(id){ return document.getElementById(id); }
 
     function ensureSupabase(){
@@ -102,12 +143,28 @@
     async function regGasto(u){
         const client = ensureSupabase();
         if (!client){
-            alert('Configura Supabase');
+            showToast('info', 'Configura Supabase');
             return;
         }
-
-        const nuevoConsumo = prompt('Ingrese el monto:');
-        if (nuevoConsumo === null) return;
+        const Swal = await ensureSwal();
+        const { isConfirmed, value } = await Swal.fire({
+            title: 'Registrar consumo',
+            input: 'number',
+            inputLabel: 'Monto gastado',
+            inputPlaceholder: 'Ej: 5000',
+            confirmButtonText: 'Registrar',
+            cancelButtonText: 'Cancelar',
+            showCancelButton: true,
+            inputAttributes: { min: '0', step: '1', inputmode: 'numeric' },
+            inputValidator: (v) => {
+                if (v === '' || v === null || v === undefined) return 'Ingrese el monto';
+                if (isNaN(v)) return 'Ingrese un número válido';
+                if (Number(v) < 0) return 'El monto no puede ser negativo';
+                return undefined;
+            }
+        });
+        if (!isConfirmed) return;
+        const nuevoConsumo = Number(value);
 
         const {data, error} = await client
         .from("Historial_Puntos")
@@ -117,7 +174,7 @@
             Monto_gastado: nuevoConsumo
         }]);
         if (error) {
-            alert('Error al registrar consumo');
+            showToast('error', 'Error al registrar consumo');
             console.error(error);
         }
         else{
@@ -126,11 +183,11 @@
             .update({ Puntos: u["Puntos"] + calculo_puntos(nuevoConsumo) })
             .eq("Telef", u['Telef'])
             if(error){
-                alert("Error al registrar consumo en el lado del cliente")
+                showToast('error', 'Error al registrar consumo en el lado del cliente');
                 console.log(error)
             }
             else{
-                alert("puntos asignados")
+                showToast('success', 'Puntos asignados');
                 await searchUsers();
             }
         }

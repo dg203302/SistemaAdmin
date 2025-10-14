@@ -5,6 +5,47 @@ import { desencriptar } from './encriptado.js';
     /** @type {import('@supabase/supabase-js').SupabaseClient | null} */
     let supabaseClient = null;
 
+    // SweetAlert2: helper para toasts
+    let __toastMixin = null;
+    function waitForSwal(){
+        return new Promise((resolve) => {
+            const iv = setInterval(() => {
+                if (window.Swal){ clearInterval(iv); resolve(); }
+            }, 50);
+        });
+    }
+    async function ensureSwal(){
+        if (window.Swal) return window.Swal;
+        if (!document.getElementById('swal2-script')){
+            const s = document.createElement('script');
+            s.id = 'swal2-script';
+            s.src = 'https://cdn.jsdelivr.net/npm/sweetalert2@11';
+            document.head.appendChild(s);
+        }
+        await waitForSwal();
+        return window.Swal;
+    }
+    async function showToast(icon, title, opts){
+        try{
+            const Swal = await ensureSwal();
+            if (!__toastMixin){
+                __toastMixin = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true,
+                    showCloseButton: true,
+                    background: 'var(--bg)',
+                    color: 'var(--text)'
+                });
+            }
+            __toastMixin.fire(Object.assign({ icon, title }, opts||{}));
+        } catch(_){
+            try { alert(title); } catch {}
+        }
+    }
+
     function $(id){ return document.getElementById(id); }
 
     function ensureSupabase(){
@@ -150,7 +191,7 @@ import { desencriptar } from './encriptado.js';
         function clearEditor(){ const ed = $('editorContainer'); if (ed){ ed.hidden = true; ed.innerHTML = ''; } }
         async function editUser(u){
                 const client = ensureSupabase();
-                if (!client){ alert('Configura Supabase'); return; }
+        if (!client){ showToast('info', 'Configura Supabase'); return; }
                 const ed = $('editorContainer'); if (!ed) return; ed.hidden = false; ed.innerHTML = '';
                 const nombreVal = u['Nombre'] ?? '';
                 const telVal = u['Telef'] ?? '';
@@ -216,7 +257,8 @@ import { desencriptar } from './encriptado.js';
                         const btn = $('btnSubmit'); const old = btn.textContent; btn.textContent = 'Guardando...'; btn.disabled = true;
                         const { error } = await client.from('Clientes').update({ Nombre, Telef, Puntos }).eq('Telef', u['Telef']);
                         btn.textContent = old; btn.disabled = false;
-                        if (error){ errorBox.hidden = false; errorBox.textContent = 'Error al actualizar.'; return; }
+                        if (error){ errorBox.hidden = false; errorBox.textContent = 'Error al actualizar.'; showToast('error', 'No se pudo actualizar'); return; }
+                        showToast('success', 'Usuario actualizado');
                         clearEditor();
                         await listAll();
                 };
@@ -225,7 +267,7 @@ import { desencriptar } from './encriptado.js';
     async function deleteUser(u){
         const client = ensureSupabase();
         if (!client){
-            alert('Configura Supabase');
+            showToast('info', 'Configura Supabase');
             return;
         }
         if (!confirm('¿Eliminar usuario?'))return;
@@ -235,16 +277,17 @@ import { desencriptar } from './encriptado.js';
         .delete()
         .eq("Telef", u['Telef']);
         if (error){
-            alert('Error al eliminar');
+            showToast('error', 'Error al eliminar');
             return;
         }
+        showToast('success', 'Usuario eliminado');
         await listAll();
     }
 
     async function VerHistorial(u){
         const client = ensureSupabase();
         if (!client){
-            alert('Configura Supabase');
+            showToast('info', 'Configura Supabase');
             return;
         }
         const { data, error } = await client
@@ -252,7 +295,7 @@ import { desencriptar } from './encriptado.js';
         .select("*")
         .eq("Telef_cliente", u['Telef']);
         if (error){
-            alert('Error al obtener historial');
+            showToast('error', 'Error al obtener historial');
             return;
         }
 
@@ -400,7 +443,7 @@ import { desencriptar } from './encriptado.js';
         e.preventDefault();
         const client = ensureSupabase();
         if (!client){
-            alert('Configura Supabase (scripts/config.js)');
+            showToast('info', 'Configura Supabase (scripts/config.js)');
             return;
         }
     
@@ -419,10 +462,10 @@ import { desencriptar } from './encriptado.js';
         .from("Clientes")
         .insert({ Nombre: nombre, Telef: telefono, Contra: cont_hash, Resp_1: r1_enc, Resp_2: r2_enc, Resp_3: r3_enc });
         if (error){
-            alert('Error al crear usuario: ' + error.message);
+            showToast('error', 'Error al crear usuario');
             return;
         }
-        alert('Cliente creado!');
+        showToast('success', 'Cliente creado');
         const form = $('crearUsuarioForm');
         if (form) form.reset();
         setCreationSectionVisible(false);
@@ -431,19 +474,19 @@ import { desencriptar } from './encriptado.js';
     
     function verificar_contra(contra){
         if (contra.length < 4){
-            alert("La Contraseña debe tener como minimo 4 caracteres");
+            showToast('warning', 'La Contraseña debe tener como minimo 4 caracteres');
             return false
         }
         else if (contra.length > 10){
-            alert("La contraseña no puede superar los 10 caracteres");
+            showToast('warning', 'La contraseña no puede superar los 10 caracteres');
             return false
         }
         else if (!(/\d/.test(contra))){
-            alert("La contraseña debe contener por lo menos un numero");
+            showToast('warning', 'La contraseña debe contener por lo menos un número');
             return false
         }
         else if (!(/[-_:;!@#$%^&*]/.test(contra))){
-            alert("La contraseña debe tener por lo menos un caracter especial: - _ : ; ! @ # $ % ^ & * ")
+            showToast('warning', 'La contraseña debe tener por lo menos un caracter especial: - _ : ; ! @ # $ % ^ & * ')
             return false
         }
         else{

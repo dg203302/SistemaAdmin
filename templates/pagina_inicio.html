@@ -41,6 +41,10 @@
                 <h2 id="acciones-rapidas-title">Acciones Rapidas 🛠️</h2>
             </header>
             <div class="quick-actions">
+                <a class="action" href="#" id="validarCodigos" aria-label="Registrar puntos a un cliente">
+                    <span class="action__icon" aria-hidden="true">➕</span>
+                    <span class="action__label">Validar codigos</span>
+                </a>
                 <a class="action" href="/templates/Registrar_puntos.html" aria-label="Registrar puntos a un cliente">
                     <span class="action__icon" aria-hidden="true">➕</span>
                     <span class="action__label">Registrar puntos</span>
@@ -125,7 +129,8 @@
                 window.location.href = '../index.html';
             });
         })();
-    </script>
+    </script>   
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/scripts/script_pagina_incial.js"></script>    
 </body>
