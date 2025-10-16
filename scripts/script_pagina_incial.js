@@ -7,13 +7,14 @@ const cantidad_clientes_activos = document.getElementById('clien_act');
 const cantidad_puntos_totales = document.getElementById('punt_totales');
 const cantidad_promos_activas = document.getElementById('prom_act');
 const cantidad_codigos_sin_valid = document.getElementById('codigos_sin_v');
+const cantidad_codigos_validados = document.getElementById('codigos_v');
 
 async function cargar_cantidades(){
   const [clientes, historial_puntos, promos, codigos_promos] = await Promise.all([
     client.from('Clientes').select('Telef'),
     client.from('Historial_Puntos').select('Cantidad_Puntos'),
     client.from('Promos_puntos').select('id_promo'),
-    client.from('Codigos_promos_puntos').select('codigo_canjeado').eq('Canjeado', 0)
+    client.from('Codigos_promos_puntos').select('Canjeado')
   ]);
 
   if (clientes.error || historial_puntos.error || promos.error || codigos_promos.error) {
@@ -31,6 +32,7 @@ async function cargar_cantidades(){
 
     cantidad_promos_activas.textContent = promos.data.length;
     cantidad_codigos_sin_valid.textContent = codigos_promos.data.length;
+    cantidad_codigos_validados.textContent = codigos_promos.data.filter(c => c.Canjeado === 1).length;
   }
 }
 
@@ -105,22 +107,30 @@ function btnexp(){
   let btn=document.getElementById("boton_exp")
   let bodytabla = document.getElementById("actividadBody")
   if (!btn || !bodytabla) return
-  bodytabla.style.maxHeight = "none";
-  bodytabla.style.overflowY = "visible";
-  btn.textContent = "Contraer"
-  btn.onclick = function (){
-    let btn=document.getElementById("boton_exp")
-    let bodytabla = document.getElementById("actividadBody")
-    if (!btn || !bodytabla) return
-    bodytabla.style.maxHeight = "calc(44px * 3)";
-    bodytabla.style.overflowY = "hidden";
-    btn.textContent = "Expandir"
+  // also try to expand/collapse the codes tables if present
+  const codSin = document.getElementById('tab_sin_validar_body');
+  const codVal = document.getElementById('tab_validados_body');
+
+  const expandAll = () => {
+    if (bodytabla){ bodytabla.style.maxHeight = 'none'; bodytabla.style.overflowY = 'visible'; }
+    if (codSin){ codSin.style.maxHeight = 'none'; codSin.style.overflowY = 'visible'; }
+    if (codVal){ codVal.style.maxHeight = 'none'; codVal.style.overflowY = 'visible'; }
+    btn.textContent = 'Contraer';
+    btn.onclick = collapseAll;
+    try { requestAnimationFrame(() => window.adjustTabContentHeight?.()); } catch(_) {}
+  };
+
+  const collapseAll = () => {
+    if (bodytabla){ bodytabla.style.maxHeight = 'calc(44px * 3)'; bodytabla.style.overflowY = 'hidden'; }
+    if (codSin){ codSin.style.maxHeight = 'calc(44px * 3)'; codSin.style.overflowY = 'hidden'; }
+    if (codVal){ codVal.style.maxHeight = 'calc(44px * 3)'; codVal.style.overflowY = 'hidden'; }
+    btn.textContent = 'Expandir';
     btn.onclick = btnexp;
     // readjust height when collapsing
     try { window.adjustTabContentHeight?.(); } catch(_) {}
-  }
-  // readjust height after expanding, on next frame
-  try { requestAnimationFrame(() => window.adjustTabContentHeight?.()); } catch(_) {}
+  };
+
+  expandAll();
 }
 // Ajusta la altura visible del contenedor de tabs al alto del panel activo
 function adjustTabContentHeight(){
@@ -152,6 +162,7 @@ window.adjustTabContentHeight = adjustTabContentHeight;
 window.onload = async function(){
   cargar_cantidades()
   cargar_actividad_reciente()
+  cargar_codigos_validados_no_validados()
 }
 
 document.getElementById("validarCodigos").onclick = async function(){
@@ -169,12 +180,21 @@ document.getElementById("validarCodigos").onclick = async function(){
     return;
   }
 
+  const now = new Date();
+  const tzOffset = -now.getTimezoneOffset(); // minutes
+  const sign = tzOffset >= 0 ? '+' : '-';
+  const pad = n => String(Math.floor(Math.abs(n))).padStart(2, '0');
+  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 19); // YYYY-MM-DDTHH:mm:ss
+  const localWithOffset = `${local}${sign}${pad(tzOffset / 60)}:${pad(tzOffset % 60)}`;
+
   const { data, error } = await client
-  .from('Codigos_promos_puntos')
-  .update({ Canjeado: 1 })
-  .eq('codigo_canjeado', CodigoPromo)
-  .eq('Canjeado', 0)
-  .select();
+    .from('Codigos_promos_puntos')
+    .update({ Canjeado: 1, Fecha_validacion: localWithOffset })
+    .eq('codigo_canjeado', CodigoPromo)
+    .eq('Canjeado', 0)
+    .select();
 
   if (error) {
     Swal.fire({
@@ -202,4 +222,56 @@ document.getElementById("validarCodigos").onclick = async function(){
     icon: 'success',
     confirmButtonText: 'OK'
   });
+  cargar_cantidades();
+  recargar_tablas();
 }
+async function cargar_codigos_validados_no_validados(){
+  const {data,error} = await client
+  .from('Codigos_promos_puntos')
+  .select('*')
+  .order("fecha_creac", { ascending: false });
+  if (error){
+    Swal.fire({
+      title: 'Error',
+      text: 'Error al cargar los códigos',
+      icon: 'error',
+      confirmButtonText: 'OK'
+    });
+    return;
+  }
+  const contenedor_cod_sin_val = document.getElementById('tab_sin_validar_body');
+  const contenedor_cod_val = document.getElementById('tab_validados_body');
+  if (!contenedor_cod_sin_val || !contenedor_cod_val) return;
+  contenedor_cod_sin_val.innerHTML = '';
+  contenedor_cod_val.innerHTML = '';
+  for (const cod of data){
+    if (cod.Canjeado === 0){
+      const tr = document.createElement('tr');
+      const tdCod = document.createElement('td');
+      tdCod.style.textAlign = "center";
+      tdCod.textContent = cod.codigo_canjeado ?? '';
+      tr.appendChild(tdCod);
+      const tdFec = document.createElement('td');
+      tdFec.style.textAlign = "center";
+      tdFec.textContent = cod.fecha_creac ? new Date(cod.fecha_creac).toLocaleString() : '';
+      tr.appendChild(tdFec);
+      contenedor_cod_sin_val.appendChild(tr);
+    }
+    else{
+      const tr = document.createElement('tr');
+      const tdCod = document.createElement('td');
+      tdCod.style.textAlign = "center";
+      tdCod.textContent = cod.codigo_canjeado ?? '';
+      tr.appendChild(tdCod);
+      const tdFec = document.createElement('td');
+      tdFec.style.textAlign = "center";
+      tdFec.textContent = cod.Fecha_validacion ? new Date(cod.Fecha_validacion).toLocaleString() : '';
+      tr.appendChild(tdFec);
+      contenedor_cod_val.appendChild(tr);
+    }
+  }
+}
+  async function recargar_tablas(){
+    cargar_actividad_reciente()
+    cargar_codigos_validados_no_validados()
+  }

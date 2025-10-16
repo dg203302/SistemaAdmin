@@ -53,6 +53,10 @@
                 <header>Codigos canjeados sin validar</header>
                 <div class="kpi__value" id="codigos_sin_v">-</div>
             </article>
+            <article class="card kpi" aria-live="polite">
+                <header>Codigos canjeados validados</header>
+                <div class="kpi__value" id="codigos_v">-</div>
+            </article>
         </section>
 
         <!-- Acciones rápidas -->
@@ -62,7 +66,7 @@
             </header>
             <div class="quick-actions">
                 <a class="action" href="#" id="validarCodigos" aria-label="Registrar puntos a un cliente">
-                    <span class="action__icon" aria-hidden="true">➕</span>
+                    <span class="action__icon" aria-hidden="true">✅</span>
                     <span class="action__label">Validar codigos</span>
                 </a>
                 <a class="action" href="/templates/Registrar_puntos.html" aria-label="Registrar puntos a un cliente">
@@ -85,7 +89,7 @@
             <header class="card__header">
                 <h2 id="actividad-title">Registros y códigos</h2>
                 <div style="display: flex;flex-direction: row;justify-content: center;gap:8px;">
-                    <button class="action" onclick="cargar_actividad_reciente()" title="Recargar actividad">🔄</button>
+                    <button class="action" onclick="recargar_tablas()" title="Recargar actividad">🔄</button>
                     <button class="action" id="boton_exp" onclick="btnexp()" title="Expandir/Contraer actividad">Expandir</button>
                 </div>
             </header>
@@ -123,13 +127,10 @@
                                 <thead>
                                     <tr>
                                         <th>Código</th>
-                                        <th>Estado</th>
+                                        <th>Fecha Creación</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    <tr><td>ABC123</td><td>Pendiente</td></tr>
-                                    <tr><td>XYZ789</td><td>Pendiente</td></tr>
-                                    <tr><td>LMN456</td><td>Pendiente</td></tr>
+                                <tbody id="tab_sin_validar_body">
                                 </tbody>
                             </table>
                         </div>
@@ -142,12 +143,10 @@
                                 <thead>
                                     <tr>
                                         <th>Código</th>
-                                        <th>Fecha validación</th>
+                                        <th>Fecha Validación</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    <tr><td>QWE456</td><td>2025-10-10</td></tr>
-                                    <tr><td>RTY111</td><td>2025-10-12</td></tr>
+                                <tbody id="tab_validados_body">
                                 </tbody>
                             </table>
                         </div>
