@@ -286,7 +286,7 @@
             ` : `
               <div class="field field-vigencia">
                 <label for="fVig">Vigencia</label>
-                <input id="fVig" type="text" value="${escapeAttr(vigVal)}" placeholder="p.ej. 2025-12-31 o 30 días" />
+                <input id="fVig" type="date" value="${escapeAttr(dmyToIso(vigVal))}" />
               </div>
             `}
             <div id="formError" class="error" hidden></div>
@@ -424,7 +424,8 @@
         const iso = document.getElementById('fVigDate').value;
         vig = iso ? isoToDmy(iso) : '';
       } else {
-        vig = document.getElementById('fVig').value.trim();
+        const iso = document.getElementById('fVig').value;
+        vig = iso ? isoToDmy(iso) : '';
       }
 
       // Validaciones básicas
