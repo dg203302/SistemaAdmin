@@ -250,23 +250,31 @@ import { desencriptar } from './encriptado.js';
                         e.preventDefault();
                         const Nombre = $('fNombre').value.trim();
                         const Telef = $('fTel').value.replace(/[^0-9]/g,'');
-                        const Puntos = $('fPuntos').value === '' ? null : Number($('fPuntos').value);
+                        const rawPuntos = $('fPuntos').value;
+                        const hasPuntos = rawPuntos !== '';
+                        const Puntos = hasPuntos ? Number(rawPuntos) : null;
+                        const toNum = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
+                        const oldPuntos = toNum(u['Puntos']);
+                        const newPuntos = hasPuntos ? toNum(Puntos) : oldPuntos; // si no se editó, mantener
+                        const delta = newPuntos - oldPuntos;
                         if (!Nombre){ errorBox.hidden = false; errorBox.textContent = 'El nombre es obligatorio.'; return; }
                         if (!Telef){ errorBox.hidden = false; errorBox.textContent = 'El teléfono es obligatorio.'; return; }
                         errorBox.hidden = true; errorBox.textContent = '';
                         const btn = $('btnSubmit'); const old = btn.textContent; btn.textContent = 'Guardando...'; btn.disabled = true;
                         const { error } = await client.from('Clientes').update({ Nombre, Telef, Puntos }).eq('Telef', u['Telef']);
-                        const { error: error2 } = await client.from('Historial_Puntos').insert([{
-                                                                                        Telef_cliente: Telef,
-                                                                                        Cantidad_Puntos: Puntos,
-                                                                                        Monto_gastado: 0
-                                                                                    }]);
-                        btn.textContent = old; btn.disabled = false;
-                        if (error){ errorBox.hidden = false; errorBox.textContent = 'Error al actualizar.'; showToast('error', 'No se pudo actualizar'); return; }
-                        showToast('success', 'Usuario actualizado');
-                        clearEditor();
-                        await listAll();
-                };
+                        // Registrar cambio de puntos solo si hubo modificación real
+                        let error2 = null;
+                        if (delta !== 0){
+                            const ins = await client.from('Historial_Puntos').insert([{ Telef_cliente: Telef, Cantidad_Puntos: delta, Monto_gastado: 0 }]);
+                            error2 = ins.error || null;
+                        }
+                                    btn.textContent = old; btn.disabled = false;
+                                    if (error){ errorBox.hidden = false; errorBox.textContent = 'Error al actualizar.'; showToast('error', 'No se pudo actualizar'); return; }
+                        if (error2){ showToast('warning', 'Usuario actualizado, pero no se registró el cambio de puntos'); }
+                                    showToast('success', 'Usuario actualizado');
+                                    clearEditor();
+                                    await listAll();
+                            };
         }
 
     async function deleteUser(u){
@@ -541,4 +549,3 @@ import { desencriptar } from './encriptado.js';
         document.addEventListener('DOMContentLoaded', init);
     } else { init(); }
 })();
-
