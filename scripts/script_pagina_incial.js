@@ -4,7 +4,8 @@ const { createClient } = supabase
 const client = createClient(supabaseUrl, supabaseKey)
 
 const cantidad_clientes_activos = document.getElementById('clien_act');
-const cantidad_puntos_totales = document.getElementById('punt_totales');
+const cantidad_puntos_totales_asign = document.getElementById('punt_totales_asign');
+const cantidad_puntos_totales_rest = document.getElementById('punt_totales_rest');
 const cantidad_promos_activas = document.getElementById('prom_act');
 const cantidad_codigos_sin_valid = document.getElementById('codigos_sin_v');
 const cantidad_codigos_validados = document.getElementById('codigos_v');
@@ -27,8 +28,17 @@ async function cargar_cantidades(){
   } else {
     cantidad_clientes_activos.textContent = clientes.data.length;
 
-    const totalPuntos = historial_puntos.data.reduce((acc, p) => acc + (p.Cantidad_Puntos || 0), 0);
-    cantidad_puntos_totales.textContent = totalPuntos;
+    const totalPuntosasign = historial_puntos.data.reduce((acc, p) => {
+      const n = Number(p.Cantidad_Puntos) || 0;
+      return acc + (n > 0 ? n : 0);
+    }, 0);
+    cantidad_puntos_totales_asign.textContent = totalPuntosasign;
+
+    const totalPuntosrest = historial_puntos.data.reduce((acc, p) => {
+      const n = Number(p.Cantidad_Puntos) || 0;
+      return acc + (n < 0 ? n : 0);
+    }, 0);
+    cantidad_puntos_totales_rest.textContent = totalPuntosrest;
 
     cantidad_promos_activas.textContent = promos.data.length;
     cantidad_codigos_sin_valid.textContent = codigos_promos.data.filter(c => c.Canjeado === 0).length;
