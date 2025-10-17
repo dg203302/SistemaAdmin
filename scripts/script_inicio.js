@@ -14,6 +14,15 @@ document.getElementById("Form-admin").addEventListener("submit", function(eve){
     window.location.href = "/templates/pagina_inicio.html"
     }
     else{
-        alert("contraseña incorrecta!")
+        if (typeof Swal !== "undefined" && Swal && typeof Swal.fire === "function"){
+            Swal.fire({
+                title: "Contraseña incorrecta",
+                text: "Por favor, inténtalo de nuevo.",
+                icon: "error",
+                confirmButtonText: "Entendido"
+            });
+        } else {
+            alert("Contraseña incorrecta. Por favor, inténtalo de nuevo.");
+        }
     }
 })
