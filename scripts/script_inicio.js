@@ -21,8 +21,10 @@ document.getElementById("Form-admin").addEventListener("submit", function(eve){
                 icon: "error",
                 confirmButtonText: "Entendido"
             });
+            return;
         } else {
             alert("Contraseña incorrecta. Por favor, inténtalo de nuevo.");
+            return;
         }
-    }
+    }   
 })
