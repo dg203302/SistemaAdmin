@@ -256,6 +256,11 @@ import { desencriptar } from './encriptado.js';
                         errorBox.hidden = true; errorBox.textContent = '';
                         const btn = $('btnSubmit'); const old = btn.textContent; btn.textContent = 'Guardando...'; btn.disabled = true;
                         const { error } = await client.from('Clientes').update({ Nombre, Telef, Puntos }).eq('Telef', u['Telef']);
+                        const { error: error2 } = await client.from('Historial_Puntos').insert([{
+                                                                                        Telef_cliente: Telef,
+                                                                                        Cantidad_Puntos: Puntos,
+                                                                                        Monto_gastado: 0
+                                                                                    }]);
                         btn.textContent = old; btn.disabled = false;
                         if (error){ errorBox.hidden = false; errorBox.textContent = 'Error al actualizar.'; showToast('error', 'No se pudo actualizar'); return; }
                         showToast('success', 'Usuario actualizado');
