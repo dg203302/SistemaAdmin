@@ -31,7 +31,7 @@ async function cargar_cantidades(){
     cantidad_puntos_totales.textContent = totalPuntos;
 
     cantidad_promos_activas.textContent = promos.data.length;
-    cantidad_codigos_sin_valid.textContent = codigos_promos.data.length;
+    cantidad_codigos_sin_valid.textContent = codigos_promos.data.filter(c => c.Canjeado === 0).length;
     cantidad_codigos_validados.textContent = codigos_promos.data.filter(c => c.Canjeado === 1).length;
   }
 }
