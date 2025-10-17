@@ -247,6 +247,10 @@ async function cargar_codigos_validados_no_validados(){
   for (const cod of data){
     if (cod.Canjeado === 0){
       const tr = document.createElement('tr');
+      const tdNom = document.createElement('td');
+      tdNom.style.textAlign = "center";
+      tdNom.textContent = await obtNomClie(cod.Telef) ?? '';
+      tr.appendChild(tdNom);
       const tdCod = document.createElement('td');
       tdCod.style.textAlign = "center";
       tdCod.textContent = cod.codigo_canjeado ?? '';
@@ -260,6 +264,10 @@ async function cargar_codigos_validados_no_validados(){
     else{
       const tr = document.createElement('tr');
       const tdCod = document.createElement('td');
+      const tdNom = document.createElement('td');
+      tdNom.style.textAlign = "center";
+      tdNom.textContent = await obtNomClie(cod.Telef) ?? '';
+      tr.appendChild(tdNom);
       tdCod.style.textAlign = "center";
       tdCod.textContent = cod.codigo_canjeado ?? '';
       tr.appendChild(tdCod);
@@ -271,7 +279,26 @@ async function cargar_codigos_validados_no_validados(){
     }
   }
 }
-  async function recargar_tablas(){
-    cargar_actividad_reciente()
-    cargar_codigos_validados_no_validados()
+async function recargar_tablas(){
+  cargar_actividad_reciente()
+  cargar_codigos_validados_no_validados()
+}
+
+async function obtNomClie(tele){
+  const {data,error} = await client
+  .from("Clientes")
+  .select("Nombre")
+  .eq("Telef",tele)
+  .single();
+
+  if (error) {
+    Swal.fire({
+      title: 'Error',
+      text: 'Error al cargar los Nombres de Clientes',
+      icon: 'error',
+      confirmButtonText: 'OK'
+    });
+    return null;
   }
+  return data ? data.Nombre : null;
+}
