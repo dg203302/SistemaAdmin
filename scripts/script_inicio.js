@@ -6,7 +6,7 @@ window.onload = function(){
     }
 }
 
-const contra_admin = "ContraAdmin123"
+const contra_admin = "lote2025"
 document.getElementById("Form-admin").addEventListener("submit", function(eve){
     eve.preventDefault()
     if (hash_alfanum(document.getElementById("contra-admin").value) === hash_alfanum(contra_admin)){
