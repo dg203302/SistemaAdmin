@@ -11,34 +11,20 @@ const cantidad_codigos_sin_valid = document.getElementById('codigos_sin_v');
 const cantidad_codigos_validados = document.getElementById('codigos_v');
 
 async function cargar_cantidades(){
-  const [clientes, historial_puntos, promos, codigos_promos] = await Promise.all([
+  const [clientes, promos, codigos_promos] = await Promise.all([
     client.from('Clientes').select('Telef'),
-    client.from('Historial_Puntos').select('Cantidad_Puntos'),
     client.from('Promos_puntos').select('id_promo'),
     client.from('Codigos_promos_puntos').select('Canjeado')
   ]);
 
-  if (clientes.error || historial_puntos.error || promos.error || codigos_promos.error) {
+  if (clientes.error || promos.error || codigos_promos.error) {
     console.error('Error en alguna consulta:', {
       clientes: clientes.error,
-      historial_puntos: historial_puntos.error,
       promos: promos.error,
       codigos_promos: codigos_promos.error
     });
   } else {
     cantidad_clientes_activos.textContent = clientes.data.length;
-
-    const totalPuntosasign = historial_puntos.data.reduce((acc, p) => {
-      const n = Number(p.Cantidad_Puntos) || 0;
-      return acc + (n > 0 ? n : 0);
-    }, 0);
-    cantidad_puntos_totales_asign.textContent = totalPuntosasign;
-
-    const totalPuntosrest = historial_puntos.data.reduce((acc, p) => {
-      const n = Number(p.Cantidad_Puntos) || 0;
-      return acc + (n < 0 ? n : 0);
-    }, 0);
-    cantidad_puntos_totales_rest.textContent = totalPuntosrest;
 
     cantidad_promos_activas.textContent = promos.data.length;
     cantidad_codigos_sin_valid.textContent = codigos_promos.data.filter(c => c.Canjeado === 0).length;
@@ -311,4 +297,50 @@ async function obtNomClie(tele){
     return null;
   }
   return data ? data.Nombre : null;
+}
+function limpiar_busqueda(){
+  const input = document.getElementById('buscador_codigo');
+  if (!input) return;
+  input.value = '';
+  // Mostrar todas las filas al limpiar
+  document.querySelectorAll('#actividadBody tr, #tab_sin_validar_body tr, #tab_validados_body tr').forEach(f => {
+    f.style.display = '';
+  });
+}
+function buscar_codigo(){
+  const input = document.getElementById('buscador_codigo');
+  if (!input) return;
+  const valor = input.value.trim();
+  if (!valor) return;
+  const q = valor.toLowerCase();
+  let filas_historial = document.querySelectorAll('#actividadBody tr');
+  let filas_cod_sin_val = document.querySelectorAll('#tab_sin_validar_body tr');
+  let filas_cod_val = document.querySelectorAll('#tab_validados_body tr');
+  filas_historial.forEach(fila => {
+    const nombre = (fila.cells[0]?.textContent || '').toLowerCase();
+    const telefono = (fila.cells[1]?.textContent || '').toLowerCase();
+    if (nombre.includes(q) || telefono.includes(q)) {
+      fila.style.display = '';
+    } else {
+      fila.style.display = 'none';
+    }
+  });
+  filas_cod_sin_val.forEach(fila => {
+    const nombre = (fila.cells[0]?.textContent || '').toLowerCase();
+    const telefono = (fila.cells[1]?.textContent || '').toLowerCase();
+    if (nombre.includes(q) || telefono.includes(q)) {
+      fila.style.display = '';
+    } else {
+      fila.style.display = 'none';
+    }
+  });
+  filas_cod_val.forEach(fila => {
+    const nombre = (fila.cells[0]?.textContent || '').toLowerCase();
+    const telefono = (fila.cells[1]?.textContent || '').toLowerCase();
+    if (nombre.includes(q) || telefono.includes(q)) {
+      fila.style.display = '';
+    } else {
+      fila.style.display = 'none';
+    }
+  });
 }

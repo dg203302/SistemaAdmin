@@ -298,3 +298,36 @@ img{
   .hide-sm { display: none !important; }
 }
 
+.conte_busq{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  flex-direction: column;
+}
+.conte_busq_btns{
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+#buscador_codigo{
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--elev-1);
+  color: var(--text);
+  width: 200px;
+}
+#buscador_codigo::placeholder{
+  color: var(--muted);
+}
+#btn_buscar, #btn_limpiar{
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--elev-1);
+  color: var(--text);
+  cursor: pointer;
+}

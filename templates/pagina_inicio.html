@@ -42,14 +42,6 @@
                 <div class="kpi__value" id="clien_act">-</div>
             </article>
             <article class="card kpi" aria-live="polite">
-                <header>Puntos totales asignados</header>
-                <div class="kpi__value" id="punt_totales_asign">-</div>
-            </article>
-            <article class="card kpi" aria-live="polite">
-                <header>Puntos totales restados</header>
-                <div class="kpi__value" id="punt_totales_rest">-</div>
-            </article>
-            <article class="card kpi" aria-live="polite">
                 <header>Promociones activas</header>
                 <div class="kpi__value" id="prom_act">-</div>
             </article>
@@ -92,6 +84,13 @@
         <section class="card" aria-labelledby="actividad-title">
             <header class="card__header">
                 <h2 id="actividad-title">Registros y códigos</h2>
+                <div class="conte_busq">
+                    <input type="text" class="input" id="buscador_codigo" placeholder="Filtrar por Nombre/Telefono" aria-label="Buscar código">
+                    <div class="conte_busq_btns">
+                        <button class="action" id="btn_buscar" onclick="buscar_codigo()">Buscar</button>
+                        <button class="action" id="btn_limpiar" onclick="limpiar_busqueda()">Limpiar</button>
+                    </div>
+                </div>
                 <div style="display: flex;flex-direction: row;justify-content: center;gap:8px;">
                     <button class="action" onclick="recargar_tablas()" title="Recargar actividad">🔄</button>
                     <button class="action" id="boton_exp" onclick="btnexp()" title="Expandir/Contraer actividad">Expandir</button>

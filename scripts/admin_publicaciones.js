@@ -161,6 +161,85 @@
     return tr;
   }
 
+  // Placeholders para avisos especiales
+  const HORARIOS_PLACEHOLDER = `Lunes
+8:00 – 20:00
+Martes
+8:00 – 20:00
+Miércoles
+8:00 – 20:00
+Jueves
+8:00 – 20:00
+Viernes
+8:00 – 20:00
+Sábado
+9:00 – 14:00
+Domingo
+Cerrado`;
+
+  const POLITICAS_PLACEHOLDER = `Devoluciones dentro de 15 días con ticket.
+Garantía oficial para productos electrónicos.
+Medios de pago: efectivo, débito, crédito y transferencias.
+Facturación A y B disponible a solicitud.`;
+
+  // Botones extra para Avisos: Editar horarios (id 101) y Editar políticas (id 102)
+  async function openSpecialAviso(client, cols, table, idValue, label){
+    try{
+      const { data, error } = await client.from(table).select('*').eq(cols.id, idValue).single();
+      if (error || !data){
+        console.error(error);
+        await showToast('error', `No se encontró el aviso de ${label}`);
+        return;
+      }
+      const opts = (idValue === 101 || idValue === 102)
+        ? {
+            descriptionOnly: true,
+            specialLabel: label,
+            placeholder: (idValue === 101 ? HORARIOS_PLACEHOLDER : POLITICAS_PLACEHOLDER)
+          }
+        : undefined;
+      openInlineForm('edit', 'Avisos', cols, data, client, table, opts);
+    } catch(err){
+      console.error(err);
+      await showToast('error', `No se pudo abrir el editor de ${label}`);
+    }
+  }
+
+  function setupAvisosExtras(tipo, client, cols, table){
+    const btnCrear = document.getElementById('btnCrear');
+    if (!btnCrear) return;
+    const parent = btnCrear.parentElement || btnCrear.parentNode;
+
+    let btnHor = document.getElementById('btnEditarHorarios');
+    let btnPol = document.getElementById('btnEditarPoliticas');
+
+    if (!btnHor){
+      btnHor = document.createElement('button');
+      btnHor.id = 'btnEditarHorarios';
+      btnHor.type = 'button';
+      btnHor.className = 'btn';
+      btnHor.textContent = 'Editar horarios';
+      if (parent) parent.appendChild(btnHor);
+    }
+    if (!btnPol){
+      btnPol = document.createElement('button');
+      btnPol.id = 'btnEditarPoliticas';
+      btnPol.type = 'button';
+      btnPol.className = 'btn';
+      btnPol.textContent = 'Editar políticas';
+      if (parent) parent.appendChild(btnPol);
+    }
+
+    const show = (tipo === 'Avisos');
+    btnHor.hidden = !show;
+    btnPol.hidden = !show;
+
+    if (show){
+      btnHor.onclick = () => openSpecialAviso(client, cols, table, 101, 'horarios');
+      btnPol.onclick = () => openSpecialAviso(client, cols, table, 102, 'políticas');
+    }
+  }
+
   async function loadItems(tipo){
     clearTbody();
     const tbody = getEl('itemsBody');
@@ -180,7 +259,13 @@
     }
 
     const { table, cols } = cfg;
+    // Botones extra visibles solo en Avisos
+    setupAvisosExtras(tipo, client, cols, table);
     let q = client.from(table).select('*');
+    // Excluir avisos con id 101 y 102
+    if (tipo === 'Avisos' && cols.id) {
+      q = q.neq(cols.id, 101).neq(cols.id, 102);
+    }
     if (cols.id) q = q.order(cols.id, { ascending: false });
     const { data, error } = await q;
 
@@ -223,13 +308,14 @@
     openInlineForm('create', tipo, cols, null, client, table);
   }
 
-  function openInlineForm(mode, tipo, cols, item, client, table){
+  function openInlineForm(mode, tipo, cols, item, client, table, opts){
     clearEditor();
     const ed = getEl('editorContainer');
     if (!ed) return;
     ed.hidden = false;
 
   const isPromo = (tipo === 'Promociones' && cols.puntos);
+    const descriptionOnly = !!(opts && opts.descriptionOnly);
     const titleVal = item ? (item[cols.title] ?? '') : '';
     const descVal = item ? (item[cols.description] ?? '') : '';
     const ptsVal = item && isPromo ? (item[cols.puntos] ?? '') : '';
@@ -237,67 +323,93 @@
   const flotVal = item && cols.flotante ? (item[cols.flotante] ?? '') : '';
   const emojiVal = item && cols.emoji ? (item[cols.emoji] ?? '') : '';
 
-    ed.innerHTML = `
-      <div class="inline-card" role="region" aria-label="${mode === 'create' ? 'Crear' : 'Editar'} ${tipo}">
-        <div class="inline-header">
-          <div class="inline-title">${mode === 'create' ? 'Crear' : 'Editar'} ${tipo}</div>
-          <button type="button" class="icon-btn" id="btnCloseEditor" aria-label="Cerrar">✕</button>
+    if (descriptionOnly) {
+      const labelTitle = (opts && opts.specialLabel) ? `Editar ${opts.specialLabel}` : `${mode === 'create' ? 'Crear' : 'Editar'} ${tipo}`;
+      const ph = (opts && opts.placeholder) ? opts.placeholder : '';
+      ed.innerHTML = `
+        <div class="inline-card" role="region" aria-label="${labelTitle}">
+          <div class="inline-header">
+            <div class="inline-title">${labelTitle}</div>
+            <button type="button" class="icon-btn" id="btnCloseEditor" aria-label="Cerrar">✕</button>
+          </div>
+          <div class="inline-body">
+            <form class="inline-form" id="inlineForm" data-tipo="${tipo}">
+              <div class="field field-descripcion">
+                <label for="fDesc">Descripción</label>
+                <textarea id="fDesc" rows="6" placeholder="${escapeAttr(ph)}">${escapeHtml(descVal)}</textarea>
+              </div>
+              <div id="formError" class="error" hidden></div>
+              <div class="inline-actions">
+                <button type="submit" class="btn primary" id="btnSubmit">Guardar</button>
+                <button type="button" class="btn" id="btnCancelar">Cancelar</button>
+              </div>
+            </form>
+          </div>
         </div>
-        <div class="inline-body">
-          <form class="inline-form" id="inlineForm" data-tipo="${tipo}">
-            <div class="field field-titulo">
-              <label for="fTitulo">Título</label>
-              <input id="fTitulo" type="text" value="${escapeHtml(titleVal)}" required />
-            </div>
-            <div class="field field-descripcion">
-              <label for="fDesc">Descripción</label>
-              <textarea id="fDesc" rows="4">${escapeHtml(descVal)}</textarea>
-            </div>
-            ${cols.flotante ? `
-              <div class="field field-flotante">
-                <label for="fFlot">Título flotante</label>
-                <input id="fFlot" type="text" value="${escapeAttr(flotVal)}" placeholder="Texto destacado" />
+      `;
+    } else {
+      ed.innerHTML = `
+        <div class="inline-card" role="region" aria-label="${mode === 'create' ? 'Crear' : 'Editar'} ${tipo}">
+          <div class="inline-header">
+            <div class="inline-title">${mode === 'create' ? 'Crear' : 'Editar'} ${tipo}</div>
+            <button type="button" class="icon-btn" id="btnCloseEditor" aria-label="Cerrar">✕</button>
+          </div>
+          <div class="inline-body">
+            <form class="inline-form" id="inlineForm" data-tipo="${tipo}">
+              <div class="field field-titulo">
+                <label for="fTitulo">Título</label>
+                <input id="fTitulo" type="text" value="${escapeHtml(titleVal)}" required />
               </div>
-            ` : ''}
-            ${isPromo ? `
-              <div class="field field-puntos">
-                <label for="fPuntos">Puntos</label>
-                <input id="fPuntos" type="number" step="1" min="0" value="${escapeAttr(ptsVal)}" />
-                <div class="inline-hint">Solo números enteros.</div>
+              <div class="field field-descripcion">
+                <label for="fDesc">Descripción</label>
+                <textarea id="fDesc" rows="4">${escapeHtml(descVal)}</textarea>
               </div>
-            ` : ''}
-            ${cols.emoji ? `
-              <div class="field field-emoji" style="position:relative;">
-                <label for="fEmoji">Emoji</label>
-                <div class="emoji-input-row">
-                  <input id="fEmoji" type="text" class="w-emoji" value="${escapeAttr(emojiVal)}" placeholder="p.ej. 🎉" />
-                  <button type="button" class="btn small" id="btnEmojiPicker" aria-haspopup="dialog" aria-expanded="false">Seleccionar</button>
+              ${cols.flotante ? `
+                <div class="field field-flotante">
+                  <label for="fFlot">Título flotante</label>
+                  <input id="fFlot" type="text" value="${escapeAttr(flotVal)}" placeholder="Texto destacado" />
                 </div>
-                <div id="emojiPickerContainer" class="emoji-picker-container" hidden style="position:absolute; right:0; top:calc(100% + 6px); z-index: 9999; background:#fff; border:1px solid rgba(0,0,0,0.08); border-radius:10px; box-shadow:0 10px 24px rgba(0,0,0,0.18);">
+              ` : ''}
+              ${isPromo ? `
+                <div class="field field-puntos">
+                  <label for="fPuntos">Puntos</label>
+                  <input id="fPuntos" type="number" step="1" min="0" value="${escapeAttr(ptsVal)}" />
+                  <div class="inline-hint">Solo números enteros.</div>
                 </div>
+              ` : ''}
+              ${cols.emoji ? `
+                <div class="field field-emoji" style="position:relative;">
+                  <label for="fEmoji">Emoji</label>
+                  <div class="emoji-input-row">
+                    <input id="fEmoji" type="text" class="w-emoji" value="${escapeAttr(emojiVal)}" placeholder="p.ej. 🎉" />
+                    <button type="button" class="btn small" id="btnEmojiPicker" aria-haspopup="dialog" aria-expanded="false">Seleccionar</button>
+                  </div>
+                  <div id="emojiPickerContainer" class="emoji-picker-container" hidden style="position:absolute; right:0; top:calc(100% + 6px); z-index: 9999; background:#fff; border:1px solid rgba(0,0,0,0.08); border-radius:10px; box-shadow:0 10px 24px rgba(0,0,0,0.18);">
+                  </div>
+                </div>
+              ` : ''}
+              ${isPromo && mode === 'create' ? `
+                <div class="field field-vigencia">
+                  <label for="fVigDate">Vigencia</label>
+                  <input id="fVigDate" type="date" value="${escapeAttr(dmyToIso(vigVal))}" />
+                  <div class="inline-hint">Formato guardado: dd/mm/aaaa</div>
+                </div>
+              ` : `
+                <div class="field field-vigencia">
+                  <label for="fVig">Vigencia</label>
+                  <input id="fVig" type="date" value="${escapeAttr(dmyToIso(vigVal))}" />
+                </div>
+              `}
+              <div id="formError" class="error" hidden></div>
+              <div class="inline-actions">
+                <button type="submit" class="btn primary" id="btnSubmit">${mode === 'create' ? 'Crear' : 'Guardar'}</button>
+                <button type="button" class="btn" id="btnCancelar">Cancelar</button>
               </div>
-            ` : ''}
-            ${isPromo && mode === 'create' ? `
-              <div class="field field-vigencia">
-                <label for="fVigDate">Vigencia</label>
-                <input id="fVigDate" type="date" value="${escapeAttr(dmyToIso(vigVal))}" />
-                <div class="inline-hint">Formato guardado: dd/mm/aaaa</div>
-              </div>
-            ` : `
-              <div class="field field-vigencia">
-                <label for="fVig">Vigencia</label>
-                <input id="fVig" type="date" value="${escapeAttr(dmyToIso(vigVal))}" />
-              </div>
-            `}
-            <div id="formError" class="error" hidden></div>
-            <div class="inline-actions">
-              <button type="submit" class="btn primary" id="btnSubmit">${mode === 'create' ? 'Crear' : 'Guardar'}</button>
-              <button type="button" class="btn" id="btnCancelar">Cancelar</button>
-            </div>
-          </form>
+            </form>
+          </div>
         </div>
-      </div>
-    `;
+      `;
+    }
 
   const form = document.getElementById('inlineForm');
   const btnCancelar = document.getElementById('btnCancelar');
@@ -414,32 +526,39 @@
 
     form.onsubmit = async (e) => {
       e.preventDefault();
-      const titulo = document.getElementById('fTitulo').value.trim();
       const descripcion = document.getElementById('fDesc').value.trim();
-  const puntos = isPromo ? document.getElementById('fPuntos').value : undefined;
-  const flotante = cols.flotante ? document.getElementById('fFlot')?.value.trim() : undefined;
-  const emoji = cols.emoji ? document.getElementById('fEmoji')?.value.trim() : undefined;
-      let vig;
-      if (isPromo && mode === 'create') {
-        const iso = document.getElementById('fVigDate').value;
-        vig = iso ? isoToDmy(iso) : '';
+      let payload = {};
+      if (descriptionOnly){
+        // Solo se actualiza la descripción
+        payload = { [cols.description]: descripcion };
+        errorBox.hidden = true; errorBox.textContent = '';
       } else {
-        const iso = document.getElementById('fVig').value;
-        vig = iso ? isoToDmy(iso) : '';
-      }
+        const titulo = document.getElementById('fTitulo').value.trim();
+        const puntos = isPromo ? document.getElementById('fPuntos').value : undefined;
+        const flotante = cols.flotante ? document.getElementById('fFlot')?.value.trim() : undefined;
+        const emoji = cols.emoji ? document.getElementById('fEmoji')?.value.trim() : undefined;
+        let vig;
+        if (isPromo && mode === 'create') {
+          const iso = document.getElementById('fVigDate').value;
+          vig = iso ? isoToDmy(iso) : '';
+        } else {
+          const iso = document.getElementById('fVig').value;
+          vig = iso ? isoToDmy(iso) : '';
+        }
 
-      // Validaciones básicas
-      if (!titulo){ errorBox.hidden = false; errorBox.textContent = 'El título es obligatorio.'; return; }
-      if (isPromo && puntos !== undefined && puntos !== '' && isNaN(Number(puntos))){
-        errorBox.hidden = false; errorBox.textContent = 'Puntos debe ser un número.'; return;
-      }
-      errorBox.hidden = true; errorBox.textContent = '';
+        // Validaciones básicas
+        if (!titulo){ errorBox.hidden = false; errorBox.textContent = 'El título es obligatorio.'; return; }
+        if (isPromo && puntos !== undefined && puntos !== '' && isNaN(Number(puntos))){
+          errorBox.hidden = false; errorBox.textContent = 'Puntos debe ser un número.'; return;
+        }
+        errorBox.hidden = true; errorBox.textContent = '';
 
-      const payload = { [cols.title]: titulo, [cols.description]: descripcion };
-      if (cols.vigencia) payload[cols.vigencia] = vig;
-      if (isPromo && cols.puntos) payload[cols.puntos] = puntos ? Number(puntos) : null;
-  if (cols.flotante) payload[cols.flotante] = flotante ?? null;
-  if (cols.emoji) payload[cols.emoji] = emoji ?? null;
+        payload = { [cols.title]: titulo, [cols.description]: descripcion };
+        if (cols.vigencia) payload[cols.vigencia] = vig;
+        if (isPromo && cols.puntos) payload[cols.puntos] = puntos ? Number(puntos) : null;
+        if (cols.flotante) payload[cols.flotante] = flotante ?? null;
+        if (cols.emoji) payload[cols.emoji] = emoji ?? null;
+      }
 
       // Loading state
       const btnSubmit = document.getElementById('btnSubmit');
