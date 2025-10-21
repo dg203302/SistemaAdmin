@@ -308,6 +308,48 @@ Facturación A y B disponible a solicitud.`;
     openInlineForm('create', tipo, cols, null, client, table);
   }
 
+  // Parsea el formato "Lunes 8:00 – 20:00 | Martes 8:00 – 20:00 | ..." a objeto { Lunes: "8:00 – 20:00", ... }
+  function parseHorarios(text) {
+    const horarios = {};
+    const dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+    
+    // Inicializar todos los días como vacío
+    dias.forEach(dia => { horarios[dia] = ''; });
+    
+    if (!text) return horarios;
+    
+    // Dividir por el separador |
+    const partes = text.split('|').map(p => p.trim()).filter(p => p);
+    
+    for (const parte of partes) {
+      // Buscar qué día aparece en esta parte
+      for (const dia of dias) {
+        if (parte.startsWith(dia)) {
+          // Extraer el horario (todo lo que viene después del nombre del día)
+          const horario = parte.substring(dia.length).trim();
+          horarios[dia] = horario;
+          break;
+        }
+      }
+    }
+    
+    return horarios;
+  }
+
+  // Serializa objeto { Lunes: "8:00 – 20:00", ... } a formato "Lunes 8:00 – 20:00 | Martes 8:00 – 20:00 | ..."
+  function serializeHorarios() {
+    const dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+    const parts = [];
+    for (const dia of dias) {
+      const input = document.getElementById(`horario_${dia}`);
+      if (input) {
+        const valor = input.value.trim();
+        parts.push(`${dia} ${valor || 'Cerrado'}`);
+      }
+    }
+    return parts.join(' | ');
+  }
+
   function openInlineForm(mode, tipo, cols, item, client, table, opts){
     clearEditor();
     const ed = getEl('editorContainer');
@@ -323,9 +365,11 @@ Facturación A y B disponible a solicitud.`;
   const flotVal = item && cols.flotante ? (item[cols.flotante] ?? '') : '';
   const emojiVal = item && cols.emoji ? (item[cols.emoji] ?? '') : '';
 
-    if (descriptionOnly) {
-      const labelTitle = (opts && opts.specialLabel) ? `Editar ${opts.specialLabel}` : `${mode === 'create' ? 'Crear' : 'Editar'} ${tipo}`;
-      const ph = (opts && opts.placeholder) ? opts.placeholder : '';
+    // Caso especial: editor de horarios con tabla
+    if (descriptionOnly && opts && opts.specialLabel === 'horarios') {
+      const labelTitle = `Editar ${opts.specialLabel}`;
+      // Parsear horarios del descVal (formato: "Lunes\n8:00 – 20:00\nMartes\n...")
+      const horarios = parseHorarios(descVal);
       ed.innerHTML = `
         <div class="inline-card" role="region" aria-label="${labelTitle}">
           <div class="inline-header">
@@ -334,9 +378,30 @@ Facturación A y B disponible a solicitud.`;
           </div>
           <div class="inline-body">
             <form class="inline-form" id="inlineForm" data-tipo="${tipo}">
-              <div class="field field-descripcion">
-                <label for="fDesc">Descripción</label>
-                <textarea id="fDesc" rows="6" placeholder="${escapeAttr(ph)}">${escapeHtml(descVal)}</textarea>
+              <div class="field">
+                <label>Horarios de atención</label>
+                <table class="horarios-table">
+                  <thead>
+                    <tr>
+                      <th>Día</th>
+                      <th>Horario</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(dia => `
+                      <tr>
+                        <td><strong>${dia}</strong></td>
+                        <td>
+                          <input type="text" 
+                                 id="horario_${dia}" 
+                                 class="horario-input"
+                                 value="${escapeAttr(horarios[dia] || '')}" 
+                                 placeholder="ej: 8:00 – 20:00 o Cerrado" />
+                        </td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
               </div>
               <div id="formError" class="error" hidden></div>
               <div class="inline-actions">
@@ -347,6 +412,60 @@ Facturación A y B disponible a solicitud.`;
           </div>
         </div>
       `;
+    } else if (descriptionOnly) {
+      const labelTitle = (opts && opts.specialLabel) ? `Editar ${opts.specialLabel}` : `${mode === 'create' ? 'Crear' : 'Editar'} ${tipo}`;
+      const ph = (opts && opts.placeholder) ? opts.placeholder : '';
+      const isPoliticas = opts && opts.specialLabel === 'políticas';
+      
+      ed.innerHTML = `
+        <div class="inline-card ${isPoliticas ? 'politicas-editor' : ''}" role="region" aria-label="${labelTitle}">
+          <div class="inline-header">
+            <div class="inline-title-wrapper">
+              ${isPoliticas ? '<span class="editor-icon">📋</span>' : ''}
+              <div class="inline-title">${labelTitle}</div>
+            </div>
+            <button type="button" class="icon-btn" id="btnCloseEditor" aria-label="Cerrar">✕</button>
+          </div>
+          <div class="inline-body">
+            <form class="inline-form" id="inlineForm" data-tipo="${tipo}">
+              <div class="field field-descripcion ${isPoliticas ? 'field-politicas' : ''}">
+                <label for="fDesc">
+                  ${isPoliticas ? '<span class="label-icon">✏️</span>' : ''}
+                  <span class="label-text">${isPoliticas ? 'Políticas y condiciones' : 'Descripción'}</span>
+                </label>
+                ${isPoliticas ? '<div class="field-hint">Define las políticas de tu negocio de forma clara y concisa. Cada línea representa una política diferente.</div>' : ''}
+                <textarea id="fDesc" rows="${isPoliticas ? '10' : '6'}" placeholder="${escapeAttr(ph)}">${escapeHtml(descVal)}</textarea>
+                ${isPoliticas ? '<div class="char-counter"><span id="charCount">0</span> caracteres</div>' : ''}
+              </div>
+              <div id="formError" class="error" hidden></div>
+              <div class="inline-actions">
+                <button type="submit" class="btn primary" id="btnSubmit">
+                  <span class="btn-icon">💾</span>
+                  <span class="btn-text">Guardar cambios</span>
+                </button>
+                <button type="button" class="btn" id="btnCancelar">
+                  <span class="btn-text">Cancelar</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      `;
+      
+      // Si es políticas, agregar contador de caracteres
+      if (isPoliticas) {
+        setTimeout(() => {
+          const textarea = document.getElementById('fDesc');
+          const counter = document.getElementById('charCount');
+          if (textarea && counter) {
+            const updateCount = () => {
+              counter.textContent = textarea.value.length;
+            };
+            updateCount();
+            textarea.addEventListener('input', updateCount);
+          }
+        }, 0);
+      }
     } else {
       ed.innerHTML = `
         <div class="inline-card" role="region" aria-label="${mode === 'create' ? 'Crear' : 'Editar'} ${tipo}">
@@ -526,7 +645,16 @@ Facturación A y B disponible a solicitud.`;
 
     form.onsubmit = async (e) => {
       e.preventDefault();
-      const descripcion = document.getElementById('fDesc').value.trim();
+      let descripcion = '';
+      
+      // Caso especial: horarios con tabla
+      if (descriptionOnly && opts && opts.specialLabel === 'horarios') {
+        descripcion = serializeHorarios();
+      } else {
+        const descInput = document.getElementById('fDesc');
+        descripcion = descInput ? descInput.value.trim() : '';
+      }
+      
       let payload = {};
       if (descriptionOnly){
         // Solo se actualiza la descripción

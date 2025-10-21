@@ -148,3 +148,448 @@ img{
   #adminSection[data-tipo] .inline-form textarea { min-height: 120px; }
   #adminSection[data-tipo] .inline-actions .btn { font-size: 1.1rem; padding: 12px 16px; }
 }
+
+/* Estilos para la tabla de horarios */
+.horarios-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--surface);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  margin-top: 8px;
+}
+
+.horarios-table thead {
+  background: linear-gradient(180deg, 
+    color-mix(in lab, var(--primary) 15%, var(--surface)),
+    color-mix(in lab, var(--primary) 8%, var(--surface))
+  );
+}
+
+.horarios-table th {
+  padding: 20px 24px;
+  text-align: left;
+  font-weight: 800;
+  font-size: 1.9rem;
+  color: var(--text);
+  border-bottom: 2px solid color-mix(in lab, var(--primary) 25%, var(--border));
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  font-size: 1.5rem;
+}
+
+.horarios-table tbody tr {
+  transition: all .2s ease;
+  position: relative;
+}
+
+.horarios-table tbody tr:hover {
+  background: color-mix(in lab, var(--primary) 5%, var(--surface));
+  transform: scale(1.005);
+}
+
+.horarios-table tbody tr:not(:last-child) td {
+  border-bottom: 1px solid color-mix(in lab, var(--border) 70%, transparent);
+}
+
+.horarios-table td {
+  padding: 18px 24px;
+  vertical-align: middle;
+  font-size: 1.7rem;
+}
+
+.horarios-table td:first-child {
+  width: 200px;
+  font-weight: 700;
+  color: color-mix(in lab, var(--text) 95%, var(--primary));
+  letter-spacing: 0.2px;
+  background: linear-gradient(90deg, 
+    color-mix(in lab, var(--primary) 3%, var(--surface)),
+    transparent
+  );
+}
+
+.horarios-input {
+  width: 100%;
+  border: 2px solid var(--border);
+  background: var(--elev-1);
+  color: var(--text);
+  padding: 16px 20px;
+  border-radius: 12px;
+  font-size: 1.7rem;
+  line-height: 1.5;
+  font-weight: 500;
+  transition: all .2s ease;
+  letter-spacing: 0.3px;
+}
+
+.horarios-input::placeholder {
+  color: var(--muted);
+  font-size: 1.5rem;
+  font-weight: 400;
+}
+
+.horarios-input:hover {
+  border-color: color-mix(in lab, var(--primary) 40%, var(--border));
+  background: var(--surface);
+}
+
+.horarios-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px color-mix(in lab, var(--primary) 15%, transparent);
+  background: var(--surface);
+  transform: translateY(-1px);
+}
+
+/* Mejorar el espaciado del formulario de horarios */
+.inline-form .field:has(.horarios-table) {
+  grid-column: 1 / -1;
+  margin-bottom: 12px;
+}
+
+.inline-form .field:has(.horarios-table) label {
+  font-size: 2.2rem;
+  font-weight: 800;
+  margin-bottom: 16px;
+  color: color-mix(in lab, var(--text) 90%, var(--primary));
+  display: block;
+  letter-spacing: 0.5px;
+}
+
+/* Responsive para tabla de horarios */
+@media (max-width: 768px) {
+  .horarios-table th {
+    font-size: 1.4rem;
+    padding: 16px 18px;
+  }
+  
+  .horarios-table td {
+    font-size: 1.4rem;
+    padding: 14px 18px;
+  }
+  
+  .horarios-table td:first-child {
+    width: 140px;
+  }
+  
+  .horarios-input {
+    font-size: 1.4rem;
+    padding: 12px 16px;
+  }
+  
+  .horarios-input::placeholder {
+    font-size: 1.2rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .horarios-table {
+    border-radius: 10px;
+  }
+
+  .horarios-table th {
+    font-size: 1.2rem;
+    padding: 12px 14px;
+  }
+  
+  .horarios-table td {
+    font-size: 1.2rem;
+    padding: 10px 14px;
+  }
+  
+  .horarios-table td:first-child {
+    width: 100px;
+    font-size: 1.1rem;
+  }
+  
+  .horarios-input {
+    font-size: 1.2rem;
+    padding: 10px 12px;
+    border-radius: 8px;
+  }
+  
+  .horarios-input::placeholder {
+    font-size: 1rem;
+  }
+
+  .inline-form .field:has(.horarios-table) label {
+    font-size: 1.6rem;
+    margin-bottom: 12px;
+  }
+}
+  
+/* Estilos mejorados para el editor de políticas */
+.politicas-editor {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.politicas-editor .inline-header {
+  background: linear-gradient(135deg, 
+    color-mix(in lab, var(--primary) 12%, var(--surface)),
+    color-mix(in lab, var(--primary) 6%, var(--surface))
+  );
+  padding: 20px var(--pad);
+  border-bottom: 2px solid color-mix(in lab, var(--primary) 20%, var(--border));
+}
+
+.inline-title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.editor-icon {
+  font-size: 2.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, 
+    color-mix(in lab, var(--primary) 20%, var(--surface)),
+    color-mix(in lab, var(--primary) 10%, var(--surface))
+  );
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.politicas-editor .inline-title {
+  font-size: 2.4rem;
+  background: linear-gradient(135deg, var(--text), color-mix(in lab, var(--text) 70%, var(--primary)));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.field-politicas {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.field-politicas label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 2rem;
+  font-weight: 800;
+  color: color-mix(in lab, var(--text) 90%, var(--primary));
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.label-icon {
+  font-size: 1.8rem;
+  display: inline-flex;
+  padding: 6px;
+  background: color-mix(in lab, var(--primary) 10%, var(--surface));
+  border-radius: 8px;
+}
+
+.label-text {
+  flex: 1;
+}
+
+.field-hint {
+  background: linear-gradient(135deg,
+    color-mix(in lab, var(--primary) 8%, var(--surface)),
+    color-mix(in lab, var(--primary) 4%, var(--surface))
+  );
+  padding: 14px 18px;
+  border-radius: 10px;
+  border-left: 4px solid var(--primary);
+  color: var(--muted);
+  font-size: 1.4rem;
+  line-height: 1.6;
+  margin-bottom: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.field-politicas textarea {
+  min-height: 280px;
+  font-size: 1.6rem;
+  line-height: 1.8;
+  padding: 20px 24px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: var(--elev-1);
+  transition: all .25s ease;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  resize: vertical;
+}
+
+.field-politicas textarea:hover {
+  border-color: color-mix(in lab, var(--primary) 40%, var(--border));
+  background: var(--surface);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.field-politicas textarea:focus {
+  border-color: var(--primary);
+  background: var(--surface);
+  box-shadow: 0 0 0 4px color-mix(in lab, var(--primary) 15%, transparent),
+              0 6px 16px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.char-counter {
+  text-align: right;
+  font-size: 1.3rem;
+  color: var(--muted);
+  font-weight: 600;
+  padding: 4px 8px;
+  background: color-mix(in lab, var(--primary) 5%, var(--surface));
+  border-radius: 6px;
+  display: inline-block;
+  align-self: flex-end;
+}
+
+.char-counter span {
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 1.4rem;
+}
+
+.politicas-editor .inline-actions {
+  margin-top: 8px;
+  padding-top: 20px;
+  border-top: 1px solid color-mix(in lab, var(--border) 60%, transparent);
+}
+
+.politicas-editor .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 28px;
+  font-size: 1.6rem;
+  font-weight: 700;
+  border-radius: 12px;
+  transition: all .25s ease;
+  letter-spacing: 0.3px;
+}
+
+.btn-icon {
+  font-size: 1.8rem;
+  display: inline-flex;
+}
+
+.politicas-editor .btn.primary {
+  background: linear-gradient(135deg, var(--primary), color-mix(in lab, var(--primary) 85%, #000));
+  box-shadow: 0 4px 12px color-mix(in lab, var(--primary) 30%, transparent);
+}
+
+.politicas-editor .btn.primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px color-mix(in lab, var(--primary) 40%, transparent);
+}
+
+.politicas-editor .btn.primary:active {
+  transform: translateY(0);
+}
+
+.politicas-editor .btn:not(.primary) {
+  background: var(--elev-2);
+  border: 2px solid var(--border);
+}
+
+.politicas-editor .btn:not(.primary):hover {
+  background: var(--elev-1);
+  border-color: color-mix(in lab, var(--primary) 30%, var(--border));
+  transform: translateY(-1px);
+}
+
+/* Responsive para editor de políticas */
+@media (max-width: 768px) {
+  .editor-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 2rem;
+  }
+  
+  .politicas-editor .inline-title {
+    font-size: 2rem;
+  }
+  
+  .field-politicas label {
+    font-size: 1.7rem;
+  }
+  
+  .field-hint {
+    font-size: 1.3rem;
+    padding: 12px 16px;
+  }
+  
+  .field-politicas textarea {
+    font-size: 1.5rem;
+    padding: 18px 20px;
+    min-height: 240px;
+  }
+  
+  .politicas-editor .btn {
+    font-size: 1.5rem;
+    padding: 14px 24px;
+  }
+}
+
+@media (max-width: 640px) {
+  .inline-title-wrapper {
+    gap: 10px;
+  }
+  
+  .editor-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 1.8rem;
+    border-radius: 10px;
+  }
+  
+  .politicas-editor .inline-title {
+    font-size: 1.7rem;
+  }
+  
+  .field-politicas label {
+    font-size: 1.5rem;
+    gap: 8px;
+  }
+  
+  .label-icon {
+    font-size: 1.5rem;
+    padding: 4px;
+  }
+  
+  .field-hint {
+    font-size: 1.2rem;
+    padding: 10px 14px;
+    border-left-width: 3px;
+  }
+  
+  .field-politicas textarea {
+    font-size: 1.4rem;
+    padding: 16px 18px;
+    min-height: 200px;
+  }
+  
+  .char-counter {
+    font-size: 1.2rem;
+  }
+  
+  .char-counter span {
+    font-size: 1.3rem;
+  }
+  
+  .politicas-editor .btn {
+    font-size: 1.4rem;
+    padding: 13px 20px;
+    gap: 8px;
+  }
+  
+  .btn-icon {
+    font-size: 1.6rem;
+  }
+}
