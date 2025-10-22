@@ -240,6 +240,20 @@ Facturación A y B disponible a solicitud.`;
     }
   }
 
+  async function cleanupCodigosSorteo(client){
+    if (!client) return;
+    try{
+        const { error } = await client.from("Codigos_sorteos").delete().not("Telef","is", null);
+        if (!error){
+          console.log(`Limpieza: eliminadas filas en Codigos_sorteos donde Telef no es null`);
+          return;
+        }
+      } catch(err){
+        await showToast('error', `no se pudieron eliminar las filas de la tabla de códigos de sorteo.`);
+        console.error(err);
+        return;
+      }
+    }
   async function loadItems(tipo){
     clearTbody();
     const tbody = getEl('itemsBody');
@@ -284,6 +298,13 @@ Facturación A y B disponible a solicitud.`;
 
     const onDelete = async (item) => {
       if (!confirm('¿Eliminar este elemento?')) return;
+      // Si es Promociones y el título contiene 'sorteo', limpiar códigos relacionados
+      try{
+        if (tipo === 'Promociones' && item[cols.title] && /sorteo/i.test(String(item[cols.title]))) {
+          await cleanupCodigosSorteo(client);
+        }
+      } catch(e){ console.error(e); }
+
       const { error: delErr } = await client.from(table).delete().eq(cols.id, item[cols.id]);
       if (delErr){ showToast('error', 'Error al eliminar'); return; }
       showToast('success', 'Elemento eliminado');
@@ -695,6 +716,24 @@ Facturación A y B disponible a solicitud.`;
       btnSubmit.disabled = true;
   let err;
       if (mode === 'create'){
+        // Si estamos creando una Promoción y el título contiene 'sorteo', asegurar unicidad
+        if (tipo === 'Promociones' && payload[cols.title] && /sorteo/i.test(String(payload[cols.title]))) {
+          try {
+            const { data: exists, error: exErr } = await client.from(table)
+              .select(cols.title)
+              .ilike(cols.title, '%sorteo%')
+              .limit(1);
+            if (exErr) {
+              console.error(exErr);
+            }
+            if (exists && exists.length > 0) {
+              showToast('warning', 'Ya existe otra promoción con "sorteo" en el título. Solo puede haber una.');
+              btnSubmit.textContent = oldLabel;
+              btnSubmit.disabled = false;
+              return;
+            }
+          } catch(e) { console.error(e); }
+        }
         ({ error: err } = await client.from(table).insert(payload));
       } else {
         ({ error: err } = await client.from(table).update(payload).eq(cols.id, item[cols.id]));

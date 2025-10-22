@@ -159,6 +159,76 @@ window.onload = async function(){
   cargar_cantidades()
   cargar_actividad_reciente()
   cargar_codigos_validados_no_validados()
+  cargar_btn_sorteo()
+  verificar_ganador_existente()
+  verificar_ganador_existente()
+}
+
+
+// Wire the "Validar codigo ganador" quick action
+document.getElementById('validarCodigoGanador')?.addEventListener('click', async (ev) => {
+  ev.preventDefault();
+  await validarCodigoGanadorFlow();
+});
+
+// Prompt for a winning code, validate against codigos tables and remove if matched
+async function validarCodigoGanadorFlow(){
+  const { value: codigoIngresado, isConfirmed } = await Swal.fire({
+    title: 'Validar código ganador',
+    input: 'text',
+    inputPlaceholder: 'Ingrese código ganador',
+    showCancelButton: true,
+    confirmButtonText: 'Validar',
+    cancelButtonText: 'Cancelar',
+    inputValidator: (v) => !v && 'El código es requerido'
+  });
+
+  if (!isConfirmed || !codigoIngresado) return;
+
+  const cleaned = String(codigoIngresado).trim();
+  if (!cleaned) return;
+
+  // Try to find and delete the code in candidate tables. Returns true when deleted.
+  async function findAndDelete(){
+      try{
+        // try to find exact-match in likely code columns
+        const { data: found, error: selErr } = await client.from('Codigos_sorteos').select('*').or('codigo_sorteo.eq.' + cleaned).limit(1).single();
+        if (!selErr && found){
+          // delete the exact matching row(s) for that code
+          const { error: delErr } = await client.from('Codigos_sorteos').delete().eq('codigo_sorteo', cleaned);
+          if (delErr){
+            console.error('Error al eliminar en', 'Codigos_sorteos', delErr);
+            return { ok: false, table: 'Codigos_sorteos', error: delErr };
+          }
+          return { ok: true, table: 'Codigos_sorteos' };
+        }
+      }catch(e){
+        return { ok: false };
+      }
+    }
+  const result = await findAndDelete();
+
+  if (result.ok){
+    await Swal.fire({ title: 'Código validado', text: `Disfrute de su premio`, icon: 'success' });
+    cargar_cantidades();
+    recargar_tablas();
+    // Try to remove the Aviso that was created announcing the sorteo winner
+    try{
+      const { error: delAvisoErr } = await client.from('Avisos')
+        .delete()
+        .eq('titulo_aviso', 'Sorteo finalizado')
+        .ilike('descripcion_aviso', `%${cleaned}%`);
+      if (delAvisoErr){
+        console.error('Error al eliminar aviso de sorteo:', delAvisoErr);
+      }
+    } catch(e){
+      console.error('Exception al eliminar aviso de sorteo:', e);
+    }
+    // refresh the page to ensure UI/state consistency
+    try { window.location.reload(); } catch(_) { }
+    return;
+  }
+  await Swal.fire({ title: 'No encontrado', text: 'El código no coincide con ningún registro de sorteo', icon: 'warning' });
 }
 
 document.getElementById("validarCodigos").onclick = async function(){
@@ -298,6 +368,17 @@ async function obtNomClie(tele){
   }
   return data ? data.Nombre : null;
 }
+// Escapa HTML para insertar texto en HTML seguro
+function escapeHtml(s){
+  const str = s == null ? '' : String(s);
+  return str.replace(/[&<>"]|'/g, function(ch){
+    return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]);
+  });
+}
+function escapeAttr(s){
+  const str = s == null ? '' : String(s);
+  return str.replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
 function limpiar_busqueda(){
   const input = document.getElementById('buscador_codigo');
   if (!input) return;
@@ -343,4 +424,287 @@ function buscar_codigo(){
       fila.style.display = 'none';
     }
   });
+}
+
+async function cargar_btn_sorteo(){
+  const { data, error } = await client
+  .from('Promos_puntos')
+  .select('Nombre_promo')
+  .ilike('Nombre_promo', '%sorteo%');
+  if (error) {
+    Swal.fire({
+      title: 'Error',
+      text: 'Error al cargar el sorteo activo',
+      icon: 'error',
+      confirmButtonText: 'OK'
+    });
+    return null;
+  }
+  const sorteo = Array.isArray(data) && data.length > 0 ? data[0] : null;
+  const contenedorSorteo = document.getElementById('Sorteo');
+  const btnSorteo = document.getElementById('span_sorteo');
+  if (sorteo && btnSorteo && contenedorSorteo) {
+    btnSorteo.textContent = "Realizar " + (sorteo.Nombre_promo || '');
+    contenedorSorteo.style.display = '';
+    // Wire click to iniciar sorteo
+    contenedorSorteo.onclick = (ev) => { ev.preventDefault(); iniciarSorteoFlow(); };
+    return;
+  } else {
+    if (contenedorSorteo) contenedorSorteo.style.display = 'none';
+    return null;
+  }
+}
+
+// Helper: obtiene códigos para sorteo. Intenta tabla 'Codigos_sorteo' y si no existe usa 'Codigos_promos_puntos'
+async function getSorteoCodes(){
+  // Try main candidate
+  try{
+    const tryTables = [
+      // table name kept as-is; mapping normalizes to { codigo, telef }
+      { table: 'Codigos_sorteo', map: r => ({ codigo: r.codigo_sorteo ?? r.codigo ?? r.codigo_canjeado ?? r.codigo_canjeado, telef: r.Telef ?? r.telef ?? r.telefono ?? r.telefono_cliente ?? null }) },
+      { table: 'Codigos_sorteos', map: r => ({ codigo: r.codigo_sorteo ?? r.codigo ?? r.codigo_canjeado, telef: r.Telef ?? r.telef ?? r.telefono }) }
+    ];
+    for (const candidate of tryTables){
+      try{
+        const { data, error } = await client.from(candidate.table).select('*');
+        if (!error && Array.isArray(data) && data.length > 0){
+          const mapped = data.map(candidate.map).filter(x => x && (x.codigo || x.codigo === 0));
+          // normalize codigo/telef to strings
+          return mapped.map(m => ({ codigo: m.codigo == null ? '' : String(m.codigo), telef: m.telef == null ? '' : String(m.telef) }));
+        }
+      } catch(e){ /* ignore and try next */ }
+    }
+  } catch(e){ console.error(e); }
+  return [];
+}
+
+function pickRandom(arr){
+  if (!arr || arr.length === 0) return null;
+  return arr[Math.floor(Math.random()*arr.length)];
+}
+
+async function iniciarSorteoFlow(){
+  const confirm = await Swal.fire({
+    title: 'Iniciar sorteo',
+    text: '¿Deseas confirmar la realización del sorteo?',
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: 'Confirmar realización',
+    cancelButtonText: 'Cancelar'
+  });
+  if (!confirm.isConfirmed) return;
+
+  const codes = await getSorteoCodes();
+  if (!codes || codes.length === 0){
+    await Swal.fire({ title: 'Sin códigos', text: 'No se encontraron códigos para sortear.', icon: 'warning' });
+    return;
+  }
+
+  let currentWinner = pickRandom(codes);
+
+  // Function to show winner modal and handle actions
+  async function showWinnerModal(){
+    const name = currentWinner.telef ? await obtNomClie(currentWinner.telef) : null;
+    const html = `
+      <div style="text-align:center;">
+        <div style="font-size:18px;margin-bottom:8px">Código ganador</div>
+        <div style="font-weight:700;font-size:22px;margin-bottom:6px">${currentWinner.codigo}</div>
+        <div style="color:#666;margin-bottom:12px">${name || ''}</div>
+      </div>
+    `;
+
+    const res = await Swal.fire({
+      title: 'Ganador',
+      html,
+      showCancelButton: true,
+      showDenyButton: true,
+      denyButtonText: 'Cambiar ganador',
+      confirmButtonText: 'Terminar sorteo',
+      cancelButtonText: 'Cancelar',
+      allowOutsideClick: false
+    });
+
+    if (res.isDenied){
+      // Show selection list
+      await showSelectionList();
+      // After selection, show winner modal again
+      await showWinnerModal();
+      return;
+    }
+
+    if (res.isConfirmed){
+      await Swal.fire({ title: 'Sorteo finalizado', text: `Ganador: ${currentWinner.codigo}`, icon: 'success' });
+      // create an Aviso announcing the winner
+      try{
+        await crearAvisoSorteo(currentWinner);
+      } catch(e){ console.error('Error creando aviso de sorteo:', e); }
+      await cleanupCodigosSorteo(currentWinner.codigo);
+      await eliminar_sorteo();
+      window.location.reload();
+      return;
+    }
+    // else cancelled
+  }
+
+  async function showSelectionList(){
+    // Build HTML table of participants
+    // Enrich with names
+    const enriched = [];
+    for (const c of codes){
+      const nombre = c.telef ? (await obtNomClie(c.telef)) : '';
+      enriched.push({ ...c, nombre: nombre || '' });
+    }
+
+    const rowsHtml = enriched.map((e, idx) => `
+      <tr>
+        <td style="padding:6px 8px">${escapeHtml(e.nombre) || ''}</td>
+        <td style="padding:6px 8px">${escapeHtml(e.codigo)}</td>
+        <td style="padding:6px 8px"><button class="select-winner-btn btn" data-idx="${idx}">Seleccionar como ganador</button></td>
+      </tr>
+    `).join('');
+
+    const listHtml = `
+      <div style="max-height:50vh;overflow:auto;margin-top:6px">
+        <table style="width:100%;border-collapse:collapse">
+          <thead><tr><th>Nombre</th><th>Código</th><th></th></tr></thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>
+    `;
+
+    await Swal.fire({
+      title: 'Seleccionar ganador',
+      html: listHtml,
+      showCancelButton: true,
+      cancelButtonText: 'Volver',
+      allowOutsideClick: false,
+      didOpen: () => {
+        // attach listeners
+        document.querySelectorAll('.select-winner-btn').forEach(btn => {
+          btn.addEventListener('click', (ev) => {
+            const idx = Number(btn.getAttribute('data-idx'));
+            if (!Number.isNaN(idx) && enriched[idx]){
+              currentWinner = enriched[idx];
+              Swal.close();
+            }
+          });
+        });
+      }
+    });
+  }
+
+  await showWinnerModal();
+}
+
+async function cleanupCodigosSorteo(codigo_ganador){
+  if (!client) return;
+  try{
+      // Elimina todos los códigos excepto el ganador
+      const { error } = await client.from("Codigos_sorteos")
+      .delete()
+      .neq("codigo_sorteo", codigo_ganador);
+      if (error){
+        console.error('Error al limpiar Codigos_sorteos:', error);
+        await Swal.fire({
+          title: 'Error',
+          text: 'No se pudieron eliminar las filas de la tabla de códigos de sorteo.',
+          icon: 'error',
+          confirmButtonText: 'OK'
+        });
+        return;
+      }
+      console.log(`Limpieza: eliminadas filas en Codigos_sorteos donde codigo_sorteo no es ${codigo_ganador}`);
+      return;
+    } catch(err){
+      console.error(err);
+      await Swal.fire({
+        title: 'Error',
+        text: 'No se pudieron eliminar las filas de la tabla de códigos de sorteo.',
+        icon: 'error',
+        confirmButtonText: 'OK'
+      });
+      return;
+    }
+}
+async function eliminar_sorteo(){
+  if (!client) return;
+  try{
+      const { error } = await client.from("Promos_puntos")
+      .delete()
+      .ilike("Nombre_promo", "%sorteo%");
+      if (error){
+        console.error('Error al eliminar el sorteo:', error);
+        await Swal.fire({
+          title: 'Error',
+          text: 'No se pudo eliminar el sorteo activo.',
+          icon: 'error',
+          confirmButtonText: 'OK'
+        });
+        return;
+      }
+      console.log(`Sorteo eliminado de Promos_puntos`);
+      // Recargar botón de sorteo
+      cargar_btn_sorteo();
+      return;
+    } catch(err){
+      console.error(err);
+      await Swal.fire({
+        title: 'Error',
+        text: 'No se pudo eliminar el sorteo activo.',
+        icon: 'error',
+        confirmButtonText: 'OK'
+      });
+      return;
+    }
+}
+
+async function verificar_ganador_existente(){
+  const btn = document.getElementById('validarCodigoGanador');
+  if (!btn) return false;
+    try{
+      const { data, error } = await client.from("Codigos_sorteos").select("codigo_sorteo").limit(1);
+      if (!error && Array.isArray(data) && data.length === 1){
+        return true;
+      }
+      else{
+        btn.style.display = 'none';
+        return false;
+      }
+    }catch(err){
+      // ignore and try next candidate
+      console.debug('verificar_ganador_existente: tabla no disponible o error al consultar', c.table, err?.message || err);
+    }
+  btn.style.display = 'none';
+  return false;
+}
+
+// Inserta un aviso en la tabla Avisos anunciando el ganador del sorteo
+async function crearAvisoSorteo(ganador){
+  if (!client || !ganador) return null;
+  const codigo = ganador.codigo ?? '';
+  const telef = ganador.telef ?? '';
+  const nombre = telef ? await obtNomClie(telef) : '';
+  const descripcion = `Se realizó un sorteo. Código ganador: ${codigo}${nombre ? ' - Ganador: ' + nombre : ''}`;
+  try{
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const vigenciaHoy = `${yyyy}-${mm}-${dd}`;
+
+    const { data, error } = await client.from('Avisos').insert([{
+      titulo_flotante: 'Sorteo',
+      titulo_aviso: 'Sorteo finalizado',
+      descripcion_aviso: descripcion,
+      vigencia: vigenciaHoy
+    }]).select();
+    if (error){
+      console.error('Error al crear aviso de sorteo:', error);
+      return null;
+    }
+    return data && data[0] ? data[0] : null;
+  } catch(e){
+    console.error('Exception creating aviso:', e);
+    return null;
+  }
 }
