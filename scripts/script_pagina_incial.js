@@ -159,9 +159,10 @@ window.onload = async function(){
   cargar_cantidades()
   cargar_actividad_reciente()
   cargar_codigos_validados_no_validados()
-  cargar_btn_sorteo()
-  verificar_ganador_existente()
-  verificar_ganador_existente()
+  // cargar y renderizar botón de sorteo primero
+  await cargar_btn_sorteo()
+  // luego verificar si debe mostrarse el botón de validar código ganador
+  await verificar_ganador_existente()
 }
 
 
@@ -483,6 +484,19 @@ function pickRandom(arr){
   return arr[Math.floor(Math.random()*arr.length)];
 }
 
+// pick n unique random elements from array
+function pickRandomMultiple(arr, n){
+  if (!Array.isArray(arr) || arr.length === 0) return [];
+  const copy = arr.slice();
+  const out = [];
+  const limit = Math.min(n, copy.length);
+  for (let i=0;i<limit;i++){
+    const idx = Math.floor(Math.random()*copy.length);
+    out.push(copy.splice(idx,1)[0]);
+  }
+  return out;
+}
+
 async function iniciarSorteoFlow(){
   const confirm = await Swal.fire({
     title: 'Iniciar sorteo',
@@ -500,28 +514,34 @@ async function iniciarSorteoFlow(){
     return;
   }
 
-  let currentWinner = pickRandom(codes);
+  // pick 3 unique winners
+  if (codes.length < 3){
+    await Swal.fire({ title: 'No hay suficientes códigos', text: 'Se requieren al menos 3 códigos para realizar el sorteo.', icon: 'warning' });
+    return;
+  }
+  let currentWinners = pickRandomMultiple(codes, 3);
 
   // Function to show winner modal and handle actions
   async function showWinnerModal(){
-    const name = currentWinner.telef ? await obtNomClie(currentWinner.telef) : null;
-    const html = `
-      <div style="text-align:center;">
-        <div style="font-size:18px;margin-bottom:8px">Código ganador</div>
-        <div style="font-weight:700;font-size:22px;margin-bottom:6px">${currentWinner.codigo}</div>
-        <div style="color:#666;margin-bottom:12px">${name || ''}</div>
-      </div>
-    `;
+    // build html listing the three winners
+    const parts = [];
+    for (let i=0;i<currentWinners.length;i++){
+      const w = currentWinners[i];
+      const name = w.telef ? (await obtNomClie(w.telef)) : '';
+      parts.push(`<div style="margin-bottom:8px"><strong>#${i+1}:</strong> <span style=\"font-weight:700\">${escapeHtml(w.codigo || '')}</span> <span style=\"color:#666\">${escapeHtml(name || '')}</span></div>`);
+    }
+    const html = `<div style="text-align:center;">${parts.join('')}</div>`;
 
     const res = await Swal.fire({
-      title: 'Ganador',
+      title: 'Ganadores',
       html,
       showCancelButton: true,
       showDenyButton: true,
       denyButtonText: 'Cambiar ganador',
       confirmButtonText: 'Terminar sorteo',
       cancelButtonText: 'Cancelar',
-      allowOutsideClick: false
+      allowOutsideClick: false,
+      width: '600px'
     });
 
     if (res.isDenied){
@@ -533,13 +553,16 @@ async function iniciarSorteoFlow(){
     }
 
     if (res.isConfirmed){
-      await Swal.fire({ title: 'Sorteo finalizado', text: `Ganador: ${currentWinner.codigo}`, icon: 'success' });
-      // create an Aviso announcing the winner
+      const codesArr = currentWinners.map(w => w.codigo);
+      await Swal.fire({ title: 'Sorteo finalizado', text: `Ganadores: ${codesArr.join(', ')}`, icon: 'success' });
+      // create an Aviso announcing the winners
       try{
-        await crearAvisoSorteo(currentWinner);
+        await crearAvisoSorteo(currentWinners);
       } catch(e){ console.error('Error creando aviso de sorteo:', e); }
-      await cleanupCodigosSorteo(currentWinner.codigo);
+      await cleanupCodigosSorteo(codesArr);
       await eliminar_sorteo();
+      // actualizar visibilidad del botón de validar (en caso de que no se haga reload)
+      try{ await verificar_ganador_existente(); } catch(e){ /* ignore */ }
       window.location.reload();
       return;
     }
@@ -559,7 +582,11 @@ async function iniciarSorteoFlow(){
       <tr>
         <td style="padding:6px 8px">${escapeHtml(e.nombre) || ''}</td>
         <td style="padding:6px 8px">${escapeHtml(e.codigo)}</td>
-        <td style="padding:6px 8px"><button class="select-winner-btn btn" data-idx="${idx}">Seleccionar como ganador</button></td>
+        <td style="padding:6px 8px">
+          <button class="select-winner-btn btn" data-idx="${idx}" data-winner-target="0">Como ganador 1</button>
+          <button class="select-winner-btn btn" data-idx="${idx}" data-winner-target="1">Como ganador 2</button>
+          <button class="select-winner-btn btn" data-idx="${idx}" data-winner-target="2">Como ganador 3</button>
+        </td>
       </tr>
     `).join('');
 
@@ -580,13 +607,27 @@ async function iniciarSorteoFlow(){
       allowOutsideClick: false,
       didOpen: () => {
         // attach listeners
-        document.querySelectorAll('.select-winner-btn').forEach(btn => {
-          btn.addEventListener('click', (ev) => {
-            const idx = Number(btn.getAttribute('data-idx'));
-            if (!Number.isNaN(idx) && enriched[idx]){
-              currentWinner = enriched[idx];
-              Swal.close();
+        document.querySelectorAll('.select-winner-btn').forEach(btnEl => {
+          btnEl.addEventListener('click', (ev) => {
+            const idx = Number(btnEl.getAttribute('data-idx'));
+            const target = Number(btnEl.getAttribute('data-winner-target'));
+            if (Number.isNaN(idx) || Number.isNaN(target) || !enriched[idx]) return;
+            const selected = enriched[idx];
+            const selCode = String(selected.codigo ?? '');
+            // find if the selected participant is already one of the current winners
+            const existingIndex = currentWinners.findIndex(w => String(w.codigo ?? '') === selCode);
+            if (existingIndex === -1){
+              // not present -> assign to target
+              currentWinners[target] = selected;
+            } else if (existingIndex === target){
+              // already in the same position -> nothing to do
+            } else {
+              // already selected in another position -> swap to avoid duplicates
+              const temp = currentWinners[target];
+              currentWinners[target] = currentWinners[existingIndex];
+              currentWinners[existingIndex] = temp;
             }
+            Swal.close();
           });
         });
       }
@@ -596,35 +637,42 @@ async function iniciarSorteoFlow(){
   await showWinnerModal();
 }
 
-async function cleanupCodigosSorteo(codigo_ganador){
+async function cleanupCodigosSorteo(codigos_ganadores){
   if (!client) return;
-  try{
-      // Elimina todos los códigos excepto el ganador
-      const { error } = await client.from("Codigos_sorteos")
-      .delete()
-      .neq("codigo_sorteo", codigo_ganador);
-      if (error){
-        console.error('Error al limpiar Codigos_sorteos:', error);
-        await Swal.fire({
-          title: 'Error',
-          text: 'No se pudieron eliminar las filas de la tabla de códigos de sorteo.',
-          icon: 'error',
-          confirmButtonText: 'OK'
-        });
-        return;
-      }
-      console.log(`Limpieza: eliminadas filas en Codigos_sorteos donde codigo_sorteo no es ${codigo_ganador}`);
-      return;
-    } catch(err){
-      console.error(err);
-      await Swal.fire({
-        title: 'Error',
-        text: 'No se pudieron eliminar las filas de la tabla de códigos de sorteo.',
-        icon: 'error',
-        confirmButtonText: 'OK'
-      });
+  try {
+    // Normalizar ganadores a strings
+    const winners = Array.isArray(codigos_ganadores) ? codigos_ganadores.map(c => String(c).trim()) : [String(codigos_ganadores).trim()];
+    const winnersSet = new Set(winners.filter(x => x !== ''));
+
+    // Leer todos los códigos existentes
+    const { data, error: selErr } = await client.from('Codigos_sorteos').select('codigo_sorteo');
+    if (selErr){
+      console.error('Error leyendo Codigos_sorteos:', selErr);
       return;
     }
+    const all = Array.isArray(data) ? data.map(r => String(r.codigo_sorteo == null ? '' : r.codigo_sorteo)) : [];
+
+    // Calcular no-ganadores
+    const toDelete = all.filter(c => c !== '' && !winnersSet.has(String(c).trim()));
+    if (toDelete.length === 0){
+      console.log('cleanupCodigosSorteo: no hay códigos para eliminar');
+      return;
+    }
+
+    // Eliminar en una sola llamada (o en lotes si hace falta)
+    const { error: delErr } = await client.from('Codigos_sorteos').delete().in('codigo_sorteo', toDelete);
+    if (delErr){
+      console.error('Error al eliminar no-ganadores en Codigos_sorteos:', delErr);
+      await Swal.fire({ title: 'Error', text: 'No se pudieron eliminar las filas de la tabla de códigos de sorteo.', icon: 'error', confirmButtonText: 'OK' });
+      return;
+    }
+    console.log(`Limpieza: eliminados ${toDelete.length} códigos no-ganadores en Codigos_sorteos`);
+    return;
+  } catch(err){
+    console.error(err);
+    await Swal.fire({ title: 'Error', text: 'No se pudieron eliminar las filas de la tabla de códigos de sorteo.', icon: 'error', confirmButtonText: 'OK' });
+    return;
+  }
 }
 async function eliminar_sorteo(){
   if (!client) return;
@@ -644,7 +692,9 @@ async function eliminar_sorteo(){
       }
       console.log(`Sorteo eliminado de Promos_puntos`);
       // Recargar botón de sorteo
-      cargar_btn_sorteo();
+  await cargar_btn_sorteo();
+  // actualizar visibilidad del botón de validar (si corresponde)
+  try{ await verificar_ganador_existente(); } catch(e){ /* ignore */ }
       return;
     } catch(err){
       console.error(err);
@@ -661,19 +711,32 @@ async function eliminar_sorteo(){
 async function verificar_ganador_existente(){
   const btn = document.getElementById('validarCodigoGanador');
   if (!btn) return false;
-    try{
-      const { data, error } = await client.from("Codigos_sorteos").select("codigo_sorteo").limit(1);
-      if (!error && Array.isArray(data) && data.length === 1){
-        return true;
-      }
-      else{
-        btn.style.display = 'none';
-        return false;
-      }
-    }catch(err){
-      // ignore and try next candidate
-      console.debug('verificar_ganador_existente: tabla no disponible o error al consultar', c.table, err?.message || err);
+  try{
+    // Si aún existe una promo que contiene 'sorteo', consideramos que el sorteo está activo
+    const { data: promos, error: promosErr } = await client.from('Promos_puntos').select('id_promo').ilike('Nombre_promo', '%sorteo%').limit(1);
+    if (!promosErr && Array.isArray(promos) && promos.length > 0){
+      // sorteo activo -> ocultar botón
+      btn.style.display = 'none';
+      return false;
     }
+
+    // No hay promo de sorteo activa: mostrar el botón sólo si existen códigos candidatos
+    const tryTables = ['Codigos_sorteos'];
+    for (const table of tryTables){
+      try{
+        const { data, error } = await client.from(table).select('*').limit(3);
+        if (!error && Array.isArray(data) && data.length > 0){
+          btn.style.display = '';
+          return true;
+        }
+      } catch(e){
+        // tabla no disponible o error -> probar siguiente tabla
+        console.debug('verificar_ganador_existente: error consultando', table, e?.message || e);
+      }
+    }
+  } catch(err){
+    console.error('verificar_ganador_existente error:', err);
+  }
   btn.style.display = 'none';
   return false;
 }
@@ -681,16 +744,30 @@ async function verificar_ganador_existente(){
 // Inserta un aviso en la tabla Avisos anunciando el ganador del sorteo
 async function crearAvisoSorteo(ganador){
   if (!client || !ganador) return null;
-  const codigo = ganador.codigo ?? '';
-  const telef = ganador.telef ?? '';
-  const nombre = telef ? await obtNomClie(telef) : '';
-  const descripcion = `Se realizó un sorteo. Código ganador: ${codigo}${nombre ? ' - Ganador: ' + nombre : ''}`;
   try{
     const now = new Date();
     const yyyy = now.getFullYear();
     const mm = String(now.getMonth() + 1).padStart(2, '0');
     const dd = String(now.getDate()).padStart(2, '0');
     const vigenciaHoy = `${yyyy}-${mm}-${dd}`;
+
+    let descripcion = '';
+    if (Array.isArray(ganador)){
+      const parts = [];
+      for (let i=0;i<ganador.length;i++){
+        const g = ganador[i];
+        const code = g.codigo ?? '';
+        const telef = g.telef ?? '';
+        const nombre = telef ? (await obtNomClie(telef)) : '';
+        parts.push(`#${i+1}: ${code}${nombre ? ' - ' + nombre : ''}`);
+      }
+      descripcion = `Se realizó un sorteo. Códigos ganadores: ${ganador.map(g=>g.codigo).join(', ')}. Ganadores: ${parts.join(' | ')}`;
+    } else {
+      const codigo = ganador.codigo ?? '';
+      const telef = ganador.telef ?? '';
+      const nombre = telef ? await obtNomClie(telef) : '';
+      descripcion = `Se realizó un sorteo. Código ganador: ${codigo}${nombre ? ' - Ganador: ' + nombre : ''}`;
+    }
 
     const { data, error } = await client.from('Avisos').insert([{
       titulo_flotante: 'Sorteo',
