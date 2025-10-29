@@ -211,21 +211,28 @@ async function validarCodigoGanadorFlow(){
 
   if (result.ok){
     await Swal.fire({ title: 'Código validado', text: `Disfrute de su premio`, icon: 'success' });
-    cargar_cantidades();
-    recargar_tablas();
-    // Try to remove the Aviso that was created announcing the sorteo winner
-    try{
-      const { error: delAvisoErr } = await client.from('Avisos')
-        .delete()
-        .eq('titulo_aviso', 'Sorteo finalizado')
-        .ilike('descripcion_aviso', `%${cleaned}%`);
-      if (delAvisoErr){
-        console.error('Error al eliminar aviso de sorteo:', delAvisoErr);
+    try {
+      const { data: remaining, error: selErr } = await client
+        .from('Codigos_sorteos')
+        .select('codigo_sorteo')
+        .limit(1);
+      if (!Array.isArray(remaining) || remaining.length === 0) {
+        try {
+          const { error: delAvisoErr } = await client.from('Avisos')
+            .delete()
+            .eq('titulo_aviso', 'Sorteo finalizado')
+            .ilike('descripcion_aviso', `%${cleaned}%`);
+          if (delAvisoErr){
+            console.error('Error al eliminar aviso de sorteo:', delAvisoErr);
+          }
+        } catch(e){
+          console.error('Exception al eliminar aviso de sorteo:', e);
+        }
       }
-    } catch(e){
-      console.error('Exception al eliminar aviso de sorteo:', e);
     }
-    // refresh the page to ensure UI/state consistency
+    catch(e){
+      console.error('Exception al verificar códigos restantes:', e);
+    }
     try { window.location.reload(); } catch(_) { }
     return;
   }
@@ -347,8 +354,7 @@ async function cargar_codigos_validados_no_validados(){
   }
 }
 async function recargar_tablas(){
-  cargar_actividad_reciente()
-  cargar_codigos_validados_no_validados()
+  window.location.reload();
 }
 
 async function obtNomClie(tele){
