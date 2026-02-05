@@ -700,7 +700,7 @@ Facturación A y B disponible a solicitud.`;
         if (isPromo && puntos !== undefined && puntos !== '' && isNaN(Number(puntos))){
           errorBox.hidden = false; errorBox.textContent = 'Puntos debe ser un número.'; return;
         }
-        if(isPromo && titulo.includes('sorteo') && await verificacionSorteActivo()){
+        if (isPromo && /sorteo/i.test(String(titulo)) && await verificacionSorteActivo()) {
           errorBox.hidden = false; errorBox.textContent = 'No se puede crear o editar una promoción con "sorteo" en el título mientras haya un sorteo activo.';
           return;
         }
@@ -757,7 +757,7 @@ Facturación A y B disponible a solicitud.`;
     };
   }
   async function verificacionSorteActivo(){
-    const {data, error} =  await cient
+    const {data, error} =  await client
     .from('Codigos_sorteos')
     .select('*')
     .single()

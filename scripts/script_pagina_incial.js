@@ -195,13 +195,18 @@ async function validarCodigoGanadorFlow(){
         // try to find exact-match in likely code columns
         const { data: found, error: selErr } = await client.from('Codigos_sorteos').select('*').or('codigo_sorteo.eq.' + cleaned).limit(1).single();
         if (!selErr && found){
+          const telef = found?.Telef ?? found?.telef ?? found?.telefono ?? found?.telefono_cliente ?? found?.Telef_cliente ?? '';
+          let nombre = '';
+          try{
+            if (telef) nombre = (await obtNomClie(telef)) || '';
+          } catch(_){ /* ignore */ }
           // delete the exact matching row(s) for that code
           const { error: delErr } = await client.from('Codigos_sorteos').delete().eq('codigo_sorteo', cleaned);
           if (delErr){
             console.error('Error al eliminar en', 'Codigos_sorteos', delErr);
             return { ok: false, table: 'Codigos_sorteos', error: delErr };
           }
-          return { ok: true, table: 'Codigos_sorteos' };
+          return { ok: true, table: 'Codigos_sorteos', telef: telef ? String(telef) : '', nombre: nombre ? String(nombre) : '' };
         }
       }catch(e){
         return { ok: false };
@@ -210,7 +215,20 @@ async function validarCodigoGanadorFlow(){
   const result = await findAndDelete();
 
   if (result.ok){
-    await Swal.fire({ title: 'Código validado', text: `Disfrute de su premio`, icon: 'success' });
+    const infoHtml = `
+      <div style="text-align:left;">
+        <div style="margin-bottom:10px;">
+          <div style="font-size:14px;color:#6b7280;margin-bottom:4px;">Código</div>
+          <div style="font-size:18px;font-weight:800;letter-spacing:0.5px;background:#f3f4f6;border:1px dashed #d1d5db;border-radius:8px;padding:8px 12px;display:inline-block;">${escapeHtml(cleaned)}</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div><strong>Cliente:</strong> ${escapeHtml(result.nombre || 'Sin nombre')}</div>
+          <div><strong>Teléfono:</strong> ${escapeHtml(result.telef || 'No disponible')}</div>
+        </div>
+        <div style="margin-top:12px;color:#111827;">Disfrute de su premio.</div>
+      </div>
+    `;
+    await Swal.fire({ title: 'Código validado', html: infoHtml, icon: 'success', width: '650px' });
     try {
       const { data: remaining, error: selErr } = await client
         .from('Codigos_sorteos')
@@ -221,7 +239,7 @@ async function validarCodigoGanadorFlow(){
           const { error: delAvisoErr } = await client.from('Avisos')
             .delete()
             .eq('titulo_aviso', 'Sorteo finalizado')
-            .ilike('descripcion_aviso', `%${cleaned}%`);
+            .eq('titulo_flotante', 'Sorteo');
           if (delAvisoErr){
             console.error('Error al eliminar aviso de sorteo:', delAvisoErr);
           }
@@ -588,6 +606,74 @@ function pickRandomMultiple(arr, n){
   return out;
 }
 
+// Key used to enforce "one winner per person".
+// Prefer phone (Telef) when present; fallback to code when phone is missing.
+function personKey(entry){
+  if (!entry) return '';
+  const telef = entry.telef == null ? '' : String(entry.telef).trim();
+  if (telef) return `tel:${telef}`;
+  const codigo = entry.codigo == null ? '' : String(entry.codigo).trim();
+  return `code:${codigo}`;
+}
+
+function groupByPerson(entries){
+  const map = new Map();
+  for (const e of (entries || [])){
+    const key = personKey(e);
+    if (!key) continue;
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push(e);
+  }
+  return map;
+}
+
+// Picks N winners where each winner is a unique person (based on phone).
+// If a person has multiple codes, pick 1 random code for that person.
+function pickWinnersUniqueByPerson(entries, n){
+  const groups = groupByPerson(entries);
+  const keys = Array.from(groups.keys());
+  if (keys.length === 0) return [];
+  const pickedKeys = pickRandomMultiple(keys, n);
+  const winners = [];
+  for (const k of pickedKeys){
+    const list = groups.get(k) || [];
+    const picked = pickRandom(list) || list[0];
+    if (picked) winners.push(picked);
+  }
+  return winners;
+}
+
+// Ensures currentWinners has unique people; replaces duplicates with available candidates.
+function enforceUniqueWinners(currentWinners, allCandidates){
+  const winners = Array.isArray(currentWinners) ? currentWinners.slice() : [];
+  const used = new Set();
+
+  const groups = groupByPerson(allCandidates);
+  const availableKeys = Array.from(groups.keys());
+
+  for (let i = 0; i < winners.length; i++){
+    const w = winners[i];
+    const key = personKey(w);
+    if (!key) continue;
+    if (!used.has(key)){
+      used.add(key);
+      continue;
+    }
+
+    // Duplicate: replace with a new person not used yet
+    const replacementKey = availableKeys.find(k => !used.has(k));
+    if (!replacementKey) continue;
+    const list = groups.get(replacementKey) || [];
+    const replacement = pickRandom(list) || list[0];
+    if (replacement){
+      winners[i] = replacement;
+      used.add(replacementKey);
+    }
+  }
+
+  return winners;
+}
+
 async function iniciarSorteoFlow(){
   const confirm = await Swal.fire({
     title: 'Iniciar sorteo',
@@ -605,12 +691,18 @@ async function iniciarSorteoFlow(){
     return;
   }
 
-  // pick 3 unique winners
-  if (codes.length < 3){
-    await Swal.fire({ title: 'No hay suficientes códigos', text: 'Se requieren al menos 3 códigos para realizar el sorteo.', icon: 'warning' });
+  // pick 3 unique winners by person (phone)
+  const uniquePeopleCount = groupByPerson(codes).size;
+  if (uniquePeopleCount < 3){
+    await Swal.fire({
+      title: 'No hay suficientes participantes',
+      text: 'Se requieren al menos 3 personas distintas para realizar el sorteo (1 ganador por persona).',
+      icon: 'warning'
+    });
     return;
   }
-  let currentWinners = pickRandomMultiple(codes, 3);
+  let currentWinners = pickWinnersUniqueByPerson(codes, 3);
+  currentWinners = enforceUniqueWinners(currentWinners, codes);
 
   // Function to show winner modal and handle actions
   async function showWinnerModal(){
@@ -647,7 +739,15 @@ async function iniciarSorteoFlow(){
 
     if (res.isConfirmed){
       const codesArr = currentWinners.map(w => w.codigo);
-      await Swal.fire({ title: 'Sorteo finalizado', text: `Ganadores: ${codesArr.join(', ')}`, icon: 'success' });
+      const nombresArr = [];
+      for (const w of currentWinners){
+        let nombre = '';
+        try{
+          nombre = w?.telef ? (await obtNomClie(w.telef)) : '';
+        } catch(_){ /* ignore */ }
+        nombresArr.push((nombre || '').trim() || 'Sin nombre');
+      }
+      await Swal.fire({ title: 'Sorteo finalizado', text: `Ganadores: ${nombresArr.join(' | ')}`, icon: 'success' });
       // create an Aviso announcing the winners
       try{
         await crearAvisoSorteo(currentWinners);
@@ -719,20 +819,23 @@ async function iniciarSorteoFlow(){
             const target = Number(btnEl.getAttribute('data-winner-target'));
             if (Number.isNaN(idx) || Number.isNaN(target) || !enriched[idx]) return;
             const selected = enriched[idx];
-            const selCode = String(selected.codigo ?? '');
-            // find if the selected participant is already one of the current winners
-            const existingIndex = currentWinners.findIndex(w => String(w.codigo ?? '') === selCode);
+
+            // enforce uniqueness by person (phone); fallback to code when phone missing
+            const selKey = personKey(selected);
+            const existingIndex = currentWinners.findIndex(w => personKey(w) === selKey);
             if (existingIndex === -1){
-              // not present -> assign to target
               currentWinners[target] = selected;
             } else if (existingIndex === target){
-              // already in the same position -> nothing to do
+              // already in the same position
             } else {
-              // already selected in another position -> swap to avoid duplicates
+              // swap to keep unique people
               const temp = currentWinners[target];
               currentWinners[target] = currentWinners[existingIndex];
               currentWinners[existingIndex] = temp;
             }
+
+            // final safety: if there are duplicates, replace them automatically
+            currentWinners = enforceUniqueWinners(currentWinners, enriched);
             Swal.close();
           });
         });
@@ -857,22 +960,24 @@ async function crearAvisoSorteo(ganador){
     const dd = String(now.getDate()).padStart(2, '0');
     const vigenciaHoy = `${yyyy}-${mm}-${dd}`;
 
+    const resolveNombre = async (g) => {
+      const telef = g?.telef ?? g?.Telef ?? '';
+      const nombre = telef ? (await obtNomClie(telef)) : '';
+      return (nombre || '').trim() || 'Sin nombre';
+    };
+
     let descripcion = '';
     if (Array.isArray(ganador)){
-      const parts = [];
+      const nombres = [];
       for (let i=0;i<ganador.length;i++){
-        const g = ganador[i];
-        const code = g.codigo ?? '';
-        const telef = g.telef ?? '';
-        const nombre = telef ? (await obtNomClie(telef)) : '';
-        parts.push(`#${i+1}: ${code}${nombre ? ' - ' + nombre : ''}`);
+        nombres.push(await resolveNombre(ganador[i]));
       }
-      descripcion = `Se realizó un sorteo. Códigos ganadores: ${ganador.map(g=>g.codigo).join(', ')}. Ganadores: ${parts.join(' | ')}`;
+      // Hay 3 ganadores por sorteo: listar solo nombres (sin códigos)
+      const parts = nombres.map((n, idx) => `#${idx + 1}: ${n}`);
+      descripcion = `Se realizó un sorteo. Ganadores: ${parts.join(' | ')}`;
     } else {
-      const codigo = ganador.codigo ?? '';
-      const telef = ganador.telef ?? '';
-      const nombre = telef ? await obtNomClie(telef) : '';
-      descripcion = `Se realizó un sorteo. Código ganador: ${codigo}${nombre ? ' - Ganador: ' + nombre : ''}`;
+      const nombre = await resolveNombre(ganador);
+      descripcion = `Se realizó un sorteo. Ganador #1: ${nombre}`;
     }
 
     const { data, error } = await client.from('Avisos').insert([{
