@@ -246,7 +246,7 @@ document.getElementById("validarCodigos").onclick = async function(){
     inputPlaceholder: 'Código de promoción',
     inputAttributes: { autocapitalize: 'off' },
     showCancelButton: true,
-    confirmButtonText: 'Validar',
+    confirmButtonText: 'Verificar',
     inputValidator: (value) => !value && 'El código es requerido'
   });
 
@@ -254,50 +254,135 @@ document.getElementById("validarCodigos").onclick = async function(){
     return;
   }
 
-  const now = new Date();
-  const tzOffset = -now.getTimezoneOffset(); // minutes
-  const sign = tzOffset >= 0 ? '+' : '-';
-  const pad = n => String(Math.floor(Math.abs(n))).padStart(2, '0');
-  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
-    .toISOString()
-    .slice(0, 19); // YYYY-MM-DDTHH:mm:ss
-  const localWithOffset = `${local}${sign}${pad(tzOffset / 60)}:${pad(tzOffset % 60)}`;
+  const codigo = String(CodigoPromo).trim();
+  try {
+    const { data: row, error } = await client
+      .from('Codigos_promos_puntos')
+      .select('*')
+      .eq('codigo_canjeado', codigo)
+      .limit(1)
+      .single();
 
-  const { data, error } = await client
-    .from('Codigos_promos_puntos')
-    .update({ Canjeado: 1, Fecha_validacion: localWithOffset })
-    .eq('codigo_canjeado', CodigoPromo)
-    .eq('Canjeado', 0)
-    .select();
+    if (error || !row) {
+      await Swal.fire({
+        title: 'No encontrado',
+        text: 'Código no existe en promociones o no es válido',
+        icon: 'warning',
+        confirmButtonText: 'OK'
+      });
+      return;
+    }
 
-  if (error) {
-    Swal.fire({
+    const nombreCliente = row?.Telef ? (await obtNomClie(row.Telef)) : '';
+    let promoNombre = '';
+    let promoDesc = '';
+    let promoFechas = '';
+    try {
+      if (row?.id_promo != null) {
+        const { data: promoRow } = await client
+          .from('Promos_puntos')
+          .select('*')
+          .eq('id_promo', row.id_promo)
+          .limit(1)
+          .single();
+        if (promoRow) {
+          promoNombre = promoRow.Nombre_promo || '';
+          promoDesc = promoRow.Descripcion_promo || '';
+          const fi = promoRow.Fecha_inicio ? new Date(promoRow.Fecha_inicio).toLocaleDateString() : '';
+          const ff = promoRow.Fecha_fin ? new Date(promoRow.Fecha_fin).toLocaleDateString() : '';
+          promoFechas = fi && ff ? `${fi} - ${ff}` : (fi || ff);
+        }
+      }
+    } catch(_) {}
+
+    const estadoText = row.Canjeado === 1 ? 'Canjeado' : 'Sin validar';
+    const estadoColor = row.Canjeado === 1 ? '#16a34a' : '#f59e0b';
+    const detHtml = `
+      <div style="text-align:left;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+          <div style="font-size:18px;font-weight:700;letter-spacing:0.5px;background:#f3f4f6;border:1px dashed #d1d5db;border-radius:8px;padding:8px 12px;display:inline-block;">${escapeHtml(row.codigo_canjeado || '')}</div>
+          <span style="display:inline-block;padding:4px 10px;border-radius:999px;background:${estadoColor};color:#fff;font-weight:600;">${escapeHtml(estadoText)}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+          <div><strong>Cliente:</strong> ${escapeHtml(nombreCliente || '')}</div>
+          <div><strong>Teléfono:</strong> ${escapeHtml(row.Telef || '')}</div>
+          <div><strong>Fecha creación:</strong> ${row.fecha_creac ? escapeHtml(new Date(row.fecha_creac).toLocaleString()) : '-'}</div>
+          <div><strong>Fecha validación:</strong> ${row.Fecha_validacion ? escapeHtml(new Date(row.Fecha_validacion).toLocaleString()) : '-'}</div>
+        </div>
+        <div style="border:1px solid #3b82f6;border-left:6px solid #3b82f6;background:linear-gradient(90deg, rgba(59,130,246,0.08), rgba(59,130,246,0.02));border-radius:10px;padding:12px;margin:8px 0;">
+          <div style="font-weight:700;color:#1f2937;margin-bottom:6px;">Promoción</div>
+          <div style="font-size:16px;font-weight:700;color:#1f2937;margin-bottom:4px;">${escapeHtml(promoNombre || (row.id_promo != null ? `ID ${row.id_promo}` : 'Sin promoción asociada'))}</div>
+          ${promoDesc ? `<div style="color:#374151;margin-bottom:4px;"><strong>Descripción:</strong> ${escapeHtml(promoDesc)}</div>` : ''}
+          ${promoFechas ? `<div style="color:#374151;"><strong>Vigencia:</strong> ${escapeHtml(promoFechas)}</div>` : ''}
+        </div>
+      </div>
+    `;
+
+    const showValidate = row.Canjeado !== 1;
+    const res = await Swal.fire({
+      title: 'Verificación de código',
+      html: detHtml,
+      showCancelButton: true,
+      cancelButtonText: 'Cancelar',
+      showConfirmButton: showValidate,
+      confirmButtonText: 'Validar',
+      width: '700px'
+    });
+
+    if (!res.isConfirmed) return;
+
+    const now = new Date();
+    const tzOffset = -now.getTimezoneOffset();
+    const sign = tzOffset >= 0 ? '+' : '-';
+    const pad = n => String(Math.floor(Math.abs(n))).padStart(2, '0');
+    const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+      .toISOString()
+      .slice(0, 19);
+    const localWithOffset = `${local}${sign}${pad(tzOffset / 60)}:${pad(tzOffset % 60)}`;
+
+    const { data: upd, error: updErr } = await client
+      .from('Codigos_promos_puntos')
+      .update({ Canjeado: 1, Fecha_validacion: localWithOffset })
+      .eq('codigo_canjeado', codigo)
+      .eq('Canjeado', 0)
+      .select();
+
+    if (updErr) {
+      await Swal.fire({
+        title: 'Error',
+        text: 'Error al validar el código',
+        icon: 'error',
+        confirmButtonText: 'OK'
+      });
+      return;
+    }
+
+    if (!upd || upd.length === 0) {
+      await Swal.fire({
+        title: 'No válido',
+        text: 'Código no encontrado o ya fue canjeado',
+        icon: 'warning',
+        confirmButtonText: 'OK'
+      });
+      return;
+    }
+
+    await Swal.fire({
+      title: 'Éxito',
+      text: 'Código validado correctamente',
+      icon: 'success',
+      confirmButtonText: 'OK'
+    });
+    cargar_cantidades();
+    recargar_tablas();
+  } catch(e) {
+    await Swal.fire({
       title: 'Error',
-      text: 'Error al validar el código',
+      text: 'Ocurrió un error al verificar el código',
       icon: 'error',
       confirmButtonText: 'OK'
     });
-    return;
   }
-
-  if (!data || data.length === 0) {
-    Swal.fire({
-      title: 'No válido',
-      text: 'Código no encontrado o ya fue canjeado',
-      icon: 'warning',
-      confirmButtonText: 'OK'
-    });
-    return;
-  }
-
-  Swal.fire({
-    title: 'Éxito',
-    text: 'Código validado correctamente',
-    icon: 'success',
-    confirmButtonText: 'OK'
-  });
-  cargar_cantidades();
-  recargar_tablas();
 }
 async function cargar_codigos_validados_no_validados(){
   const {data,error} = await client
@@ -534,7 +619,9 @@ async function iniciarSorteoFlow(){
     for (let i=0;i<currentWinners.length;i++){
       const w = currentWinners[i];
       const name = w.telef ? (await obtNomClie(w.telef)) : '';
-      parts.push(`<div style="margin-bottom:8px"><strong>#${i+1}:</strong> <span style=\"font-weight:700\">${escapeHtml(w.codigo || '')}</span> <span style=\"color:#666\">${escapeHtml(name || '')}</span></div>`);
+      const phone = w.telef ? String(w.telef) : '';
+      const phoneHtml = phone ? ` <span style=\"color:#888\">(${escapeHtml(phone)})</span>` : '';
+      parts.push(`<div style=\"margin-bottom:8px\"><strong>#${i+1}:</strong> <span style=\"font-weight:700\">${escapeHtml(w.codigo || '')}</span> <span style=\"color:#666\">${escapeHtml(name || '')}</span>${phoneHtml}</div>`);
     }
     const html = `<div style="text-align:center;">${parts.join('')}</div>`;
 
@@ -584,22 +671,34 @@ async function iniciarSorteoFlow(){
       enriched.push({ ...c, nombre: nombre || '' });
     }
 
-    const rowsHtml = enriched.map((e, idx) => `
-      <tr>
-        <td style="padding:6px 8px">${escapeHtml(e.nombre) || ''}</td>
-        <td style="padding:6px 8px">${escapeHtml(e.codigo)}</td>
-        <td style="padding:6px 8px">
-          <button class="select-winner-btn btn" data-idx="${idx}" data-winner-target="0">Como ganador 1</button>
-          <button class="select-winner-btn btn" data-idx="${idx}" data-winner-target="1">Como ganador 2</button>
-          <button class="select-winner-btn btn" data-idx="${idx}" data-winner-target="2">Como ganador 3</button>
-        </td>
-      </tr>
-    `).join('');
+    const rowsHtml = enriched.map((e, idx) => {
+      const bg = idx % 2 === 0 ? '#ffffff' : '#f9fafb';
+      return `
+        <tr style="background:${bg}">
+          <td style="padding:10px 12px">${escapeHtml(e.nombre) || ''}</td>
+          <td style="padding:10px 12px;color:#374151">${escapeHtml(e.telef || '')}</td>
+          <td style="padding:10px 12px;font-weight:600">${escapeHtml(e.codigo)}</td>
+          <td style="padding:10px 12px;text-align:right;white-space:nowrap;">
+            <button class="select-winner-btn" data-idx="${idx}" data-winner-target="0" style="margin:2px 4px;padding:6px 10px;border-radius:8px;border:1px solid #d1d5db;background:#f3f4f6;color:#111827;font-weight:600">🥇 Ganador 1</button>
+            <button class="select-winner-btn" data-idx="${idx}" data-winner-target="1" style="margin:2px 4px;padding:6px 10px;border-radius:8px;border:1px solid #d1d5db;background:#f3f4f6;color:#111827;font-weight:600">🥈 Ganador 2</button>
+            <button class="select-winner-btn" data-idx="${idx}" data-winner-target="2" style="margin:2px 4px;padding:6px 10px;border-radius:8px;border:1px solid #d1d5db;background:#f3f4f6;color:#111827;font-weight:600">🥉 Ganador 3</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
 
     const listHtml = `
-      <div style="max-height:50vh;overflow:auto;margin-top:6px">
+      <div style="font-size:14px;color:#374151;margin-top:6px;margin-bottom:8px">Elige quién será <strong>ganador 1</strong>, <strong>ganador 2</strong> o <strong>ganador 3</strong>. Los ganadores deben ser únicos; si seleccionas el mismo participante, se reubicará automáticamente.</div>
+      <div style="max-height:50vh;overflow:auto;border:1px solid #e5e7eb;border-radius:10px">
         <table style="width:100%;border-collapse:collapse">
-          <thead><tr><th>Nombre</th><th>Código</th><th></th></tr></thead>
+          <thead>
+            <tr style="background:#f3f4f6">
+              <th style="text-align:left;padding:10px 12px;color:#111827">Nombre</th>
+              <th style="text-align:left;padding:10px 12px;color:#111827">Teléfono</th>
+              <th style="text-align:left;padding:10px 12px;color:#111827">Código</th>
+              <th style="text-align:right;padding:10px 12px;color:#111827">Seleccionar</th>
+            </tr>
+          </thead>
           <tbody>${rowsHtml}</tbody>
         </table>
       </div>
@@ -611,6 +710,7 @@ async function iniciarSorteoFlow(){
       showCancelButton: true,
       cancelButtonText: 'Volver',
       allowOutsideClick: false,
+      width: '800px',
       didOpen: () => {
         // attach listeners
         document.querySelectorAll('.select-winner-btn').forEach(btnEl => {
