@@ -313,6 +313,11 @@ document.getElementById("validarCodigos").onclick = async function(){
       }
     } catch(_) {}
 
+    // Fallback: si el código trae el nombre de promo en otra columna
+    if (!promoNombre) {
+      promoNombre = row?.nom_promo || '';
+    }
+
     const estadoText = row.Canjeado === 1 ? 'Canjeado' : 'Sin validar';
     const estadoColor = row.Canjeado === 1 ? '#16a34a' : '#f59e0b';
     const detHtml = `
@@ -325,7 +330,6 @@ document.getElementById("validarCodigos").onclick = async function(){
           <div><strong>Cliente:</strong> ${escapeHtml(nombreCliente || '')}</div>
           <div><strong>Teléfono:</strong> ${escapeHtml(row.Telef || '')}</div>
           <div><strong>Fecha creación:</strong> ${row.fecha_creac ? escapeHtml(new Date(row.fecha_creac).toLocaleString()) : '-'}</div>
-          <div><strong>Fecha validación:</strong> ${row.Fecha_validacion ? escapeHtml(new Date(row.Fecha_validacion).toLocaleString()) : '-'}</div>
         </div>
         <div style="border:1px solid #3b82f6;border-left:6px solid #3b82f6;background:linear-gradient(90deg, rgba(59,130,246,0.08), rgba(59,130,246,0.02));border-radius:10px;padding:12px;margin:8px 0;">
           <div style="font-weight:700;color:#1f2937;margin-bottom:6px;">Promoción</div>
@@ -763,15 +767,20 @@ async function iniciarSorteoFlow(){
   }
 
   async function showSelectionList(){
-    // Build HTML table of participants
-    // Enrich with names
-    const enriched = [];
-    for (const c of codes){
-      const nombre = c.telef ? (await obtNomClie(c.telef)) : '';
-      enriched.push({ ...c, nombre: nombre || '' });
+    // Build HTML table of participants (1 row per client/person).
+    // NOTE: We still keep ALL codes in `codes` for the draw. This list is only for manual replacement.
+    const groups = groupByPerson(codes);
+    const participants = [];
+    for (const [key, list] of groups.entries()){
+      const sample = (list && list[0]) ? list[0] : null;
+      const telef = sample?.telef ? String(sample.telef) : '';
+      const nombre = telef ? (await obtNomClie(telef)) : '';
+      // show a single representative code in the list
+      const codigo = sample?.codigo == null ? '' : String(sample.codigo);
+      participants.push({ key, telef, nombre: nombre || '', codigo });
     }
 
-    const rowsHtml = enriched.map((e, idx) => {
+    const rowsHtml = participants.map((e, idx) => {
       const bg = idx % 2 === 0 ? '#ffffff' : '#f9fafb';
       return `
         <tr style="background:${bg}">
@@ -779,9 +788,9 @@ async function iniciarSorteoFlow(){
           <td style="padding:10px 12px;color:#374151">${escapeHtml(e.telef || '')}</td>
           <td style="padding:10px 12px;font-weight:600">${escapeHtml(e.codigo)}</td>
           <td style="padding:10px 12px;text-align:right;white-space:nowrap;">
-            <button class="select-winner-btn" data-idx="${idx}" data-winner-target="0" style="margin:2px 4px;padding:6px 10px;border-radius:8px;border:1px solid #d1d5db;background:#f3f4f6;color:#111827;font-weight:600">🥇 Ganador 1</button>
-            <button class="select-winner-btn" data-idx="${idx}" data-winner-target="1" style="margin:2px 4px;padding:6px 10px;border-radius:8px;border:1px solid #d1d5db;background:#f3f4f6;color:#111827;font-weight:600">🥈 Ganador 2</button>
-            <button class="select-winner-btn" data-idx="${idx}" data-winner-target="2" style="margin:2px 4px;padding:6px 10px;border-radius:8px;border:1px solid #d1d5db;background:#f3f4f6;color:#111827;font-weight:600">🥉 Ganador 3</button>
+            <button class="select-winner-btn" data-key="${escapeAttr(e.key)}" data-winner-target="0" style="margin:2px 4px;padding:6px 10px;border-radius:8px;border:1px solid #d1d5db;background:#f3f4f6;color:#111827;font-weight:600">🥇 Ganador 1</button>
+            <button class="select-winner-btn" data-key="${escapeAttr(e.key)}" data-winner-target="1" style="margin:2px 4px;padding:6px 10px;border-radius:8px;border:1px solid #d1d5db;background:#f3f4f6;color:#111827;font-weight:600">🥈 Ganador 2</button>
+            <button class="select-winner-btn" data-key="${escapeAttr(e.key)}" data-winner-target="2" style="margin:2px 4px;padding:6px 10px;border-radius:8px;border:1px solid #d1d5db;background:#f3f4f6;color:#111827;font-weight:600">🥉 Ganador 3</button>
           </td>
         </tr>
       `;
@@ -815,10 +824,14 @@ async function iniciarSorteoFlow(){
         // attach listeners
         document.querySelectorAll('.select-winner-btn').forEach(btnEl => {
           btnEl.addEventListener('click', (ev) => {
-            const idx = Number(btnEl.getAttribute('data-idx'));
             const target = Number(btnEl.getAttribute('data-winner-target'));
-            if (Number.isNaN(idx) || Number.isNaN(target) || !enriched[idx]) return;
-            const selected = enriched[idx];
+            const key = String(btnEl.getAttribute('data-key') || '');
+            if (!key || Number.isNaN(target)) return;
+
+            // When picking a person, choose a random code from that person.
+            const list = groups.get(key) || [];
+            const selected = pickRandom(list) || list[0];
+            if (!selected) return;
 
             // enforce uniqueness by person (phone); fallback to code when phone missing
             const selKey = personKey(selected);
@@ -835,7 +848,7 @@ async function iniciarSorteoFlow(){
             }
 
             // final safety: if there are duplicates, replace them automatically
-            currentWinners = enforceUniqueWinners(currentWinners, enriched);
+            currentWinners = enforceUniqueWinners(currentWinners, codes);
             Swal.close();
           });
         });
