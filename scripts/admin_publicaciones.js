@@ -19,6 +19,7 @@
   const PROMO_OFERTAS_BUCKET = 'Imagenes_promo_ofertas';
   const MAX_IMAGE_SIZE_BYTES = 1024 * 1024;
   const IMAGE_FILE_ACCEPT = '.jpg,.jpeg,.png,image/jpeg,image/png';
+  const SIGNED_URL_EXPIRES_IN = 60 * 24 * 60 * 60;
 
   /** @type {import('@supabase/supabase-js').SupabaseClient | null} */
   let supabase = null;
@@ -418,9 +419,27 @@ Facturación A y B disponible a solicitud.`;
     return `${section}/${safeTitle}-${uniqueId}-${safeFileName}`;
   }
 
-  async function uploadImageAndGetPublicUrl(client, tipo, title, file) {
+  function getStorageObjectRef(fullPath, fallbackPath, fallbackBucketId) {
+    const normalizedFullPath = String(fullPath || '').trim();
+    if (normalizedFullPath) {
+      const firstSlashIndex = normalizedFullPath.indexOf('/');
+      if (firstSlashIndex > 0) {
+        return {
+          bucketId: normalizedFullPath.slice(0, firstSlashIndex),
+          filePath: normalizedFullPath.slice(firstSlashIndex + 1)
+        };
+      }
+    }
+
+    return {
+      bucketId: fallbackBucketId || PROMO_OFERTAS_BUCKET,
+      filePath: String(fallbackPath || '').trim()
+    };
+  }
+
+  async function uploadImageAndGetSignedUrl(client, tipo, title, file) {
     const filePath = buildStorageFilePath(tipo, title, file);
-    const { error: uploadError } = await client.storage
+    const { data: uploadData, error: uploadError } = await client.storage
       .from(PROMO_OFERTAS_BUCKET)
       .upload(filePath, file, {
         cacheControl: '3600',
@@ -432,36 +451,55 @@ Facturación A y B disponible a solicitud.`;
       throw uploadError;
     }
 
-    const { data } = client.storage.from(PROMO_OFERTAS_BUCKET).getPublicUrl(filePath);
-    const publicUrl = data && data.publicUrl ? data.publicUrl : '';
-    if (!publicUrl) {
-      throw new Error('No se pudo obtener la URL pública de la imagen cargada.');
+    const objectRef = getStorageObjectRef(uploadData && uploadData.fullPath, uploadData && uploadData.path ? uploadData.path : filePath, PROMO_OFERTAS_BUCKET);
+    const { data, error: signedUrlError } = await client.storage
+      .from(objectRef.bucketId)
+      .createSignedUrl(objectRef.filePath, SIGNED_URL_EXPIRES_IN);
+
+    if (signedUrlError) {
+      throw signedUrlError;
     }
 
-    return { filePath, publicUrl };
+    const signedUrl = data && data.signedUrl ? data.signedUrl : '';
+    if (!signedUrl) {
+      throw new Error('No se pudo obtener la URL firmada de la imagen cargada.');
+    }
+
+    return { bucketId: objectRef.bucketId, filePath: objectRef.filePath, signedUrl };
   }
 
-  function getStorageFilePathFromPublicUrl(publicUrl) {
-    if (!publicUrl || typeof publicUrl !== 'string') return '';
+  function getStorageObjectRefFromStoredUrl(storedUrl) {
+    if (!storedUrl || typeof storedUrl !== 'string') {
+      return { bucketId: '', filePath: '' };
+    }
 
     try {
-      const url = new URL(publicUrl);
-      const marker = `/storage/v1/object/public/${PROMO_OFERTAS_BUCKET}/`;
-      const markerIndex = url.pathname.indexOf(marker);
-      if (markerIndex === -1) return '';
+      const url = new URL(storedUrl);
+      const markers = [
+        '/storage/v1/object/public/',
+        '/storage/v1/object/sign/',
+        '/storage/v1/object/authenticated/'
+      ];
 
-      const filePath = url.pathname.slice(markerIndex + marker.length);
-      return decodeURIComponent(filePath);
+      for (const marker of markers) {
+        const markerIndex = url.pathname.indexOf(marker);
+        if (markerIndex === -1) continue;
+
+        const objectFullPath = decodeURIComponent(url.pathname.slice(markerIndex + marker.length));
+        return getStorageObjectRef(objectFullPath, '', '');
+      }
+
+      return { bucketId: '', filePath: '' };
     } catch (parseError) {
       console.error(parseError);
-      return '';
+      return { bucketId: '', filePath: '' };
     }
   }
 
-  async function removeUploadedImage(client, filePath) {
+  async function removeUploadedImage(client, filePath, bucketId) {
     if (!client || !filePath) return;
     try {
-      await client.storage.from(PROMO_OFERTAS_BUCKET).remove([filePath]);
+      await client.storage.from(bucketId || PROMO_OFERTAS_BUCKET).remove([filePath]);
     } catch (cleanupError) {
       console.error(cleanupError);
     }
@@ -864,10 +902,11 @@ Facturación A y B disponible a solicitud.`;
       btnSubmit.textContent = 'Guardando...';
       btnSubmit.disabled = true;
       let err;
+      let uploadedImageBucketId = '';
       let uploadedImagePath = '';
-      const previousImagePath = (!descriptionOnly && mode === 'edit' && cols.imageUrl)
-        ? getStorageFilePathFromPublicUrl(item && item[cols.imageUrl])
-        : '';
+      const previousImageRef = (!descriptionOnly && mode === 'edit' && cols.imageUrl)
+        ? getStorageObjectRefFromStoredUrl(item && item[cols.imageUrl])
+        : { bucketId: '', filePath: '' };
       try {
         if (mode === 'create'){
           // Si estamos creando una Promoción y el título contiene 'sorteo', asegurar unicidad
@@ -891,9 +930,10 @@ Facturación A y B disponible a solicitud.`;
         }
 
         if (!descriptionOnly && cols.imageUrl && selectedImage) {
-          const uploadResult = await uploadImageAndGetPublicUrl(client, tipo, payload[cols.title], selectedImage);
+          const uploadResult = await uploadImageAndGetSignedUrl(client, tipo, payload[cols.title], selectedImage);
+          uploadedImageBucketId = uploadResult.bucketId;
           uploadedImagePath = uploadResult.filePath;
-          payload[cols.imageUrl] = uploadResult.publicUrl;
+          payload[cols.imageUrl] = uploadResult.signedUrl;
         }
 
         if (mode === 'create') {
@@ -911,15 +951,15 @@ Facturación A y B disponible a solicitud.`;
 
       if (err){
         if (uploadedImagePath) {
-          await removeUploadedImage(client, uploadedImagePath);
+          await removeUploadedImage(client, uploadedImagePath, uploadedImageBucketId);
         }
         errorBox.hidden = false;
         errorBox.textContent = 'Error al guardar. Revisa los datos o la carga de imagen.';
         showToast('error', 'No se pudo guardar');
         return;
       }
-      if (previousImagePath && uploadedImagePath && previousImagePath !== uploadedImagePath) {
-        await removeUploadedImage(client, previousImagePath);
+      if (previousImageRef.filePath && uploadedImagePath && previousImageRef.filePath !== uploadedImagePath) {
+        await removeUploadedImage(client, previousImageRef.filePath, previousImageRef.bucketId);
       }
       showToast('success', mode === 'create' ? 'Creado correctamente' : 'Actualizado correctamente');
       if (typeof closePortal === 'function') closePortal();
