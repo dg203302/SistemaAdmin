@@ -8,13 +8,17 @@
     Promociones: {
       table: 'Promos_puntos',
       // Ejemplo: si tu tabla usa id_promo como PK
-      cols: { id: 'id_promo', title: 'Nombre_promo', description: 'descripcion_promo', puntos: 'cantidad_puntos_canjeo', vigencia: 'validez', emoji: 'emoji_promo' }
+      cols: { id: 'id_promo', title: 'Nombre_promo', description: 'descripcion_promo', puntos: 'cantidad_puntos_canjeo', vigencia: 'validez', emoji: 'emoji_promo', imageUrl: 'Url_img' }
     },
     Ofertas: {
       table: 'Ofertas',
-      cols: { id: 'id_promocion', title: 'nombre', description: 'desripcion', vigencia:'vigencia', emoji: 'emoji_ofertas', flotante: 'campo_flotante' }
+      cols: { id: 'id_promocion', title: 'nombre', description: 'desripcion', vigencia:'vigencia', emoji: 'emoji_ofertas', flotante: 'campo_flotante', imageUrl: 'Url_img' }
     }
   };
+
+  const PROMO_OFERTAS_BUCKET = 'Imagenes_promo_ofertas';
+  const MAX_IMAGE_SIZE_BYTES = 1024 * 1024;
+  const IMAGE_FILE_ACCEPT = '.jpg,.jpeg,.png,image/jpeg,image/png';
 
   /** @type {import('@supabase/supabase-js').SupabaseClient | null} */
   let supabase = null;
@@ -371,6 +375,98 @@ Facturación A y B disponible a solicitud.`;
     return parts.join(' | ');
   }
 
+  function supportsImageUpload(tipo) {
+    return tipo === 'Promociones' || tipo === 'Ofertas';
+  }
+
+  function validateImageFile(file) {
+    if (!file) return { ok: true, message: '' };
+
+    const fileName = String(file.name || '').toLowerCase();
+    const hasValidExtension = /\.(jpg|jpeg|png)$/.test(fileName);
+    const hasValidMimeType = file.type === 'image/jpeg' || file.type === 'image/png';
+
+    if (!hasValidExtension || !hasValidMimeType) {
+      return { ok: false, message: 'Solo se permiten imágenes .jpg o .png.' };
+    }
+
+    if (file.size > MAX_IMAGE_SIZE_BYTES) {
+      return { ok: false, message: 'La imagen no puede superar 1 MB.' };
+    }
+
+    return { ok: true, message: '' };
+  }
+
+  function sanitizeFileName(name) {
+    return String(name || 'imagen')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9._-]+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+      || 'imagen';
+  }
+
+  function buildStorageFilePath(tipo, title, file) {
+    const section = tipo === 'Promociones' ? 'promociones' : 'ofertas';
+    const safeTitle = sanitizeFileName(title || section).toLowerCase();
+    const safeFileName = sanitizeFileName(file && file.name ? file.name : 'imagen');
+    const uniqueId = (window.crypto && typeof window.crypto.randomUUID === 'function')
+      ? window.crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
+    return `${section}/${safeTitle}-${uniqueId}-${safeFileName}`;
+  }
+
+  async function uploadImageAndGetPublicUrl(client, tipo, title, file) {
+    const filePath = buildStorageFilePath(tipo, title, file);
+    const { error: uploadError } = await client.storage
+      .from(PROMO_OFERTAS_BUCKET)
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: file.type || undefined
+      });
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    const { data } = client.storage.from(PROMO_OFERTAS_BUCKET).getPublicUrl(filePath);
+    const publicUrl = data && data.publicUrl ? data.publicUrl : '';
+    if (!publicUrl) {
+      throw new Error('No se pudo obtener la URL pública de la imagen cargada.');
+    }
+
+    return { filePath, publicUrl };
+  }
+
+  function getStorageFilePathFromPublicUrl(publicUrl) {
+    if (!publicUrl || typeof publicUrl !== 'string') return '';
+
+    try {
+      const url = new URL(publicUrl);
+      const marker = `/storage/v1/object/public/${PROMO_OFERTAS_BUCKET}/`;
+      const markerIndex = url.pathname.indexOf(marker);
+      if (markerIndex === -1) return '';
+
+      const filePath = url.pathname.slice(markerIndex + marker.length);
+      return decodeURIComponent(filePath);
+    } catch (parseError) {
+      console.error(parseError);
+      return '';
+    }
+  }
+
+  async function removeUploadedImage(client, filePath) {
+    if (!client || !filePath) return;
+    try {
+      await client.storage.from(PROMO_OFERTAS_BUCKET).remove([filePath]);
+    } catch (cleanupError) {
+      console.error(cleanupError);
+    }
+  }
+
   function openInlineForm(mode, tipo, cols, item, client, table, opts){
     clearEditor();
     const ed = getEl('editorContainer');
@@ -378,6 +474,7 @@ Facturación A y B disponible a solicitud.`;
     ed.hidden = false;
 
   const isPromo = (tipo === 'Promociones' && cols.puntos);
+    const allowImageUpload = supportsImageUpload(tipo);
     const descriptionOnly = !!(opts && opts.descriptionOnly);
     const titleVal = item ? (item[cols.title] ?? '') : '';
     const descVal = item ? (item[cols.description] ?? '') : '';
@@ -528,6 +625,17 @@ Facturación A y B disponible a solicitud.`;
                   </div>
                 </div>
               ` : ''}
+              ${allowImageUpload ? `
+                <div class="field field-imagen">
+                  <label for="fImagen">Imagen</label>
+                  <div class="file-upload-row">
+                    <input id="fImagen" type="file" accept="${IMAGE_FILE_ACCEPT}" hidden />
+                    <button type="button" class="btn" id="btnSeleccionarImagen">Subir imagen</button>
+                    <span class="file-upload-name" id="fileUploadName">Ningún archivo seleccionado</span>
+                  </div>
+                  <div class="inline-hint">Formatos permitidos: .jpg, .png. Tamaño máximo: 1 MB.</div>
+                </div>
+              ` : ''}
               ${isPromo && mode === 'create' ? `
                 <div class="field field-vigencia">
                   <label for="fVigDate">Vigencia</label>
@@ -555,10 +663,37 @@ Facturación A y B disponible a solicitud.`;
   const btnCancelar = document.getElementById('btnCancelar');
   const btnClose = document.getElementById('btnCloseEditor');
   const errorBox = document.getElementById('formError');
+  const fileInput = document.getElementById('fImagen');
+  const btnSeleccionarImagen = document.getElementById('btnSeleccionarImagen');
+  const fileUploadName = document.getElementById('fileUploadName');
   // Podremos cerrar un portal si existe (se define más abajo en wiring del picker)
   let closePortal = null;
   if (btnCancelar) btnCancelar.onclick = () => { if (typeof closePortal === 'function') closePortal(); clearEditor(); };
   if (btnClose) btnClose.onclick = () => { if (typeof closePortal === 'function') closePortal(); clearEditor(); };
+    if (btnSeleccionarImagen && fileInput && fileUploadName) {
+      btnSeleccionarImagen.addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', () => {
+        const selectedFile = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+
+        if (!selectedFile) {
+          fileUploadName.textContent = 'Ningún archivo seleccionado';
+          return;
+        }
+
+        const validation = validateImageFile(selectedFile);
+        if (!validation.ok) {
+          fileInput.value = '';
+          fileUploadName.textContent = 'Ningún archivo seleccionado';
+          errorBox.hidden = false;
+          errorBox.textContent = validation.message;
+          return;
+        }
+
+        fileUploadName.textContent = selectedFile.name;
+        errorBox.hidden = true;
+        errorBox.textContent = '';
+      });
+    }
     // Emoji Picker wiring (Promociones/Ofertas usan cols.emoji) con portal al <body>
     if (cols.emoji) {
       const btnEmoji = document.getElementById('btnEmojiPicker');
@@ -675,6 +810,16 @@ Facturación A y B disponible a solicitud.`;
         const descInput = document.getElementById('fDesc');
         descripcion = descInput ? descInput.value.trim() : '';
       }
+
+      const selectedImage = fileInput && fileInput.files ? fileInput.files[0] : null;
+      if (selectedImage) {
+        const imageValidation = validateImageFile(selectedImage);
+        if (!imageValidation.ok) {
+          errorBox.hidden = false;
+          errorBox.textContent = imageValidation.message;
+          return;
+        }
+      }
       
       let payload = {};
       if (descriptionOnly){
@@ -700,7 +845,7 @@ Facturación A y B disponible a solicitud.`;
         if (isPromo && puntos !== undefined && puntos !== '' && isNaN(Number(puntos))){
           errorBox.hidden = false; errorBox.textContent = 'Puntos debe ser un número.'; return;
         }
-        if (isPromo && /sorteo/i.test(String(titulo)) && await verificacionSorteActivo()) {
+        if (isPromo && /sorteo/i.test(String(titulo)) && await verificacionSorteActivo(client)) {
           errorBox.hidden = false; errorBox.textContent = 'No se puede crear o editar una promoción con "sorteo" en el título mientras haya un sorteo activo.';
           return;
         }
@@ -718,37 +863,63 @@ Facturación A y B disponible a solicitud.`;
       const oldLabel = btnSubmit.textContent;
       btnSubmit.textContent = 'Guardando...';
       btnSubmit.disabled = true;
-  let err;
-      if (mode === 'create'){
-        // Si estamos creando una Promoción y el título contiene 'sorteo', asegurar unicidad
-        if (tipo === 'Promociones' && payload[cols.title] && /sorteo/i.test(String(payload[cols.title]))) {
-          try {
-            const { data: exists, error: exErr } = await client.from(table)
-              .select(cols.title)
-              .ilike(cols.title, '%sorteo%')
-              .limit(1);
-            if (exErr) {
-              console.error(exErr);
-            }
-            if (exists && exists.length > 0) {
-              showToast('warning', 'Ya existe otra promoción con "sorteo" en el título. Solo puede haber una.');
-              btnSubmit.textContent = oldLabel;
-              btnSubmit.disabled = false;
-              return;
-            }
-          } catch(e) { console.error(e); }
+      let err;
+      let uploadedImagePath = '';
+      const previousImagePath = (!descriptionOnly && mode === 'edit' && cols.imageUrl)
+        ? getStorageFilePathFromPublicUrl(item && item[cols.imageUrl])
+        : '';
+      try {
+        if (mode === 'create'){
+          // Si estamos creando una Promoción y el título contiene 'sorteo', asegurar unicidad
+          if (tipo === 'Promociones' && payload[cols.title] && /sorteo/i.test(String(payload[cols.title]))) {
+            try {
+              const { data: exists, error: exErr } = await client.from(table)
+                .select(cols.title)
+                .ilike(cols.title, '%sorteo%')
+                .limit(1);
+              if (exErr) {
+                console.error(exErr);
+              }
+              if (exists && exists.length > 0) {
+                showToast('warning', 'Ya existe otra promoción con "sorteo" en el título. Solo puede haber una.');
+                btnSubmit.textContent = oldLabel;
+                btnSubmit.disabled = false;
+                return;
+              }
+            } catch(e) { console.error(e); }
+          }
         }
-        ({ error: err } = await client.from(table).insert(payload));
-      } else {
-        ({ error: err } = await client.from(table).update(payload).eq(cols.id, item[cols.id]));
+
+        if (!descriptionOnly && cols.imageUrl && selectedImage) {
+          const uploadResult = await uploadImageAndGetPublicUrl(client, tipo, payload[cols.title], selectedImage);
+          uploadedImagePath = uploadResult.filePath;
+          payload[cols.imageUrl] = uploadResult.publicUrl;
+        }
+
+        if (mode === 'create') {
+          ({ error: err } = await client.from(table).insert(payload));
+        } else {
+          ({ error: err } = await client.from(table).update(payload).eq(cols.id, item[cols.id]));
+        }
+      } catch(saveError) {
+        console.error(saveError);
+        err = saveError;
+      } finally {
+        btnSubmit.textContent = oldLabel;
+        btnSubmit.disabled = false;
       }
-      btnSubmit.textContent = oldLabel;
-      btnSubmit.disabled = false;
+
       if (err){
+        if (uploadedImagePath) {
+          await removeUploadedImage(client, uploadedImagePath);
+        }
         errorBox.hidden = false;
-        errorBox.textContent = 'Error al guardar. Revisa los datos.';
+        errorBox.textContent = 'Error al guardar. Revisa los datos o la carga de imagen.';
         showToast('error', 'No se pudo guardar');
         return;
+      }
+      if (previousImagePath && uploadedImagePath && previousImagePath !== uploadedImagePath) {
+        await removeUploadedImage(client, previousImagePath);
       }
       showToast('success', mode === 'create' ? 'Creado correctamente' : 'Actualizado correctamente');
       if (typeof closePortal === 'function') closePortal();
@@ -756,21 +927,23 @@ Facturación A y B disponible a solicitud.`;
       await loadItems(tipo);
     };
   }
-  async function verificacionSorteActivo(){
-    const {data, error} =  await client
-    .from('Codigos_sorteos')
-    .select('*')
-    .single()
-    if(error){showToast('error', 'Error al verificar sorteo activo'); return false;}
-    else{
-      if (data.length > 0){
-        showToast('error','Codigos de sorteo anterior sin validar');
-        return false;
-      }
-      else{
-        return true;
-      }
+  async function verificacionSorteActivo(client){
+    const { data, error } = await client
+      .from('Codigos_sorteos')
+      .select('*')
+      .limit(1);
+
+    if (error) {
+      showToast('error', 'Error al verificar sorteo activo');
+      return false;
     }
+
+    if (Array.isArray(data) && data.length > 0) {
+      showToast('error', 'Codigos de sorteo anterior sin validar');
+      return true;
+    }
+
+    return false;
   }
   function escapeHtml(s){
     return String(s).replace(/[&<>]/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[ch]));
