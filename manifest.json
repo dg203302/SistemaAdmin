@@ -1,0 +1,29 @@
+{
+"name": "EL lote Admin",
+"short_name": "EL lote Admin",
+"start_url": "https://loteadmin.netlify.app",
+"display": "standalone",
+"description": "Administracion de el lote app",
+"lang": "es",
+"dir": "auto",
+"theme_color": "#000000",
+"background_color": "#000000",
+"orientation": "any",
+"icons": [
+    {
+        "src": "/iconos/apple-icon-180.png",
+        "sizes": "180x180",
+        "type": "image/png"
+    },
+    {
+        "src": "/iconos/manifest-icon-512.maskable.png",
+        "sizes": "512x512",
+        "type": "image/png"
+    },
+    {
+        "src": "/iconos/manifest-icon-192.maskable.png",
+        "sizes": "192x192",
+        "type": "image/png"
+    }
+]
+}
