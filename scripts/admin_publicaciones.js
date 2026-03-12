@@ -641,7 +641,7 @@ Facturación A y B disponible a solicitud.`;
               </div>
               ${cols.flotante ? `
                 <div class="field field-flotante">
-                  <label for="fFlot">Título flotante</label>
+                  <label for="fFlot">${tipo === 'Ofertas' ? 'Título flotante/ Precio' : 'Título flotante'}</label>
                   <input id="fFlot" type="text" value="${escapeAttr(flotVal)}" placeholder="Texto destacado" />
                 </div>
               ` : ''}
