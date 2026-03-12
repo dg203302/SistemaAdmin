@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "app.netlify.loteadmin.twa",
+        "sha256_cert_fingerprints": ["8C:38:49:CA:34:CD:E2:5E:D7:2C:BF:25:AA:92:97:14:48:E4:0C:5F:F2:E6:64:D8:82:68:80:14:CA:A7:CE:C8"]
+      }
+    }]
