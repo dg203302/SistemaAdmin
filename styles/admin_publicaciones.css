@@ -4,6 +4,23 @@
 
 .admin-toolbar { gap: 12px; }
 
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+.brand img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.admin-toolbar {
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
 .section-title { margin: 0; font-size: clamp(1.1rem, 1rem + .6vw, 1.4rem); }
 
 /* Tabla responsiva: ocultar descripción en móviles */
@@ -16,7 +33,23 @@
 .empty { padding: 18px; color: var(--muted); }
 
 /* Botones de acción en filas */
-.row-actions { display: flex; gap: 8px; justify-content: center; align-items: center;}
+.row-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Contener desbordes por texto largo cargado por JS */
+#itemsBody td { overflow-wrap: anywhere; word-break: break-word; }
+
+.table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  min-width: 0;
+}
 
 /* Alineación consistente */
 #itemsBody td { vertical-align: middle; }
@@ -30,6 +63,7 @@
   box-shadow: 20px 16px 20px rgba(10, 0, 31, 0.744);
   overflow: hidden;
   animation: popIn .15s ease-out;
+  max-width: 100%;
 }
 .inline-header {
   display:flex; align-items:center; justify-content: space-between; gap: 10px;
@@ -119,9 +153,59 @@
 @keyframes popIn { from { opacity: 0; transform: translateY(6px);} to { opacity: 1; transform: translateY(0);} }
 
 img{
-  max-width: 10%;
-  max-height: 10%;
-  object-fit: contain;
+  max-width: 100%;
+  height: auto;
+}
+
+@media (max-width: 640px) {
+  html, body { overflow-x: hidden; }
+  .content > * { min-width: 0; }
+  .card, #editorContainer { min-width: 0; }
+
+  .layout { grid-template-rows: auto 1fr auto; }
+
+  .topbar {
+    height: auto;
+    padding: 12px var(--pad);
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .topbar__spacer { display: none; }
+  .brand { flex: 1 1 100%; min-width: 0; }
+  .brand img { width: 36px; height: 36px; }
+  .brand__name { font-size: 1rem; min-width: 0; overflow-wrap: anywhere; }
+  .topbar > a.btn { margin-left: auto; }
+
+  .content { padding: var(--pad); gap: var(--pad-lg); }
+  .page-header { flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 12px; }
+
+  .admin-toolbar { width: 100%; flex-direction: column; align-items: stretch; }
+  .admin-toolbar .input { width: 100%; }
+  #btnAdministrar { width: 100%; justify-content: center; }
+
+  .card__header {
+    padding: var(--pad);
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-items: flex-start;
+  }
+  .card > .table-wrap, .card > .body { padding: var(--pad); }
+
+  .card__tools {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+  .card__tools .btn { flex: 1 1 160px; justify-content: center; }
+
+  .inline-card { box-shadow: var(--shadow); }
+  .inline-header { flex-wrap: wrap; }
+  .inline-title { min-width: 0; overflow-wrap: anywhere; }
+
+  .inline-actions { flex-wrap: wrap; justify-content: stretch; }
+  .inline-actions .btn { flex: 1 1 160px; justify-content: center; }
 }
 
 /* Tipado: Avisos más grande */
@@ -233,7 +317,8 @@ img{
   );
 }
 
-.horarios-input {
+.horarios-input,
+.horario-input {
   width: 100%;
   border: 2px solid var(--border);
   background: var(--elev-1);
@@ -247,18 +332,21 @@ img{
   letter-spacing: 0.3px;
 }
 
-.horarios-input::placeholder {
+.horarios-input::placeholder,
+.horario-input::placeholder {
   color: var(--muted);
   font-size: 1.5rem;
   font-weight: 400;
 }
 
-.horarios-input:hover {
+.horarios-input:hover,
+.horario-input:hover {
   border-color: color-mix(in lab, var(--primary) 40%, var(--border));
   background: var(--surface);
 }
 
-.horarios-input:focus {
+.horarios-input:focus,
+.horario-input:focus {
   outline: none;
   border-color: var(--primary);
   box-shadow: 0 0 0 4px color-mix(in lab, var(--primary) 15%, transparent);
@@ -297,12 +385,14 @@ img{
     width: 140px;
   }
   
-  .horarios-input {
+  .horarios-input,
+  .horario-input {
     font-size: 1.4rem;
     padding: 12px 16px;
   }
   
-  .horarios-input::placeholder {
+  .horarios-input::placeholder,
+  .horario-input::placeholder {
     font-size: 1.2rem;
   }
 }
@@ -327,13 +417,15 @@ img{
     font-size: 1.1rem;
   }
   
-  .horarios-input {
+  .horarios-input,
+  .horario-input {
     font-size: 1.2rem;
     padding: 10px 12px;
     border-radius: 8px;
   }
   
-  .horarios-input::placeholder {
+  .horarios-input::placeholder,
+  .horario-input::placeholder {
     font-size: 1rem;
   }
 

@@ -1,6 +1,18 @@
 /* Admin Usuarios: usa tokens y componentes del tema base */
 
-.admin-toolbar { gap: 12px; }
+.admin-toolbar {
+	gap: 12px;
+	flex-wrap: wrap;
+	align-items: center;
+}
+
+.toolbar-spacer { flex: 1 1 auto; }
+
+.brand img {
+	width: 40px;
+	height: 40px;
+	object-fit: contain;
+}
 
 .section-title { margin: 0; font-size: clamp(1.1rem, 1rem + .6vw, 1.4rem); }
 
@@ -9,6 +21,65 @@
 
 .empty { padding: 18px; color: var(--muted); }
 
-.row-actions { display: flex; gap: 8px; justify-content: center; align-items: center; }
+.row-actions {
+	display: flex;
+	gap: 8px;
+	justify-content: center;
+	align-items: center;
+	flex-wrap: wrap;
+}
+
+/* Evita que el contenido cargado por JS ensanche la tabla/página */
+.row-actions .btn {
+	display: inline-block;
+	max-width: 100%;
+	white-space: normal;
+	text-align: center;
+}
+
+.table-wrap {
+	max-width: 100%;
+	overflow-x: auto;
+	-webkit-overflow-scrolling: touch;
+}
+
+#usuariosBody td {
+	overflow-wrap: anywhere;
+	word-break: break-word;
+}
 
 #usuariosBody td { vertical-align: middle; }
+
+@media (max-width: 640px) {
+	.layout { grid-template-rows: auto 1fr auto; }
+
+	.topbar {
+		height: auto;
+		padding: 12px var(--pad);
+		flex-wrap: wrap;
+		gap: 10px;
+	}
+	.brand { flex: 1 1 100%; }
+	.brand img { width: 36px; height: 36px; }
+	.brand__name { font-size: 1rem; overflow-wrap: anywhere; min-width: 0; }
+	.topbar__spacer { display: none; }
+	.topbar > a.btn { margin-left: auto; }
+
+	.content { padding: var(--pad); gap: var(--pad-lg); }
+
+	.page-header {
+		flex-direction: column;
+		align-items: stretch;
+		justify-content: flex-start;
+		gap: 12px;
+	}
+
+	.admin-toolbar {
+		width: 100%;
+		flex-direction: column;
+		align-items: stretch;
+	}
+	#q { width: 100%; }
+	#btnBuscar { width: 100%; justify-content: center; }
+	.toolbar-spacer { display: none; }
+}

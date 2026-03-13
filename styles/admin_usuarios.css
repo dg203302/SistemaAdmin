@@ -2,6 +2,25 @@
 
 .admin-toolbar { gap: 12px; }
 
+img {
+	max-width: 100%;
+	height: auto;
+}
+
+.brand img {
+	width: 40px;
+	height: 40px;
+	object-fit: contain;
+}
+
+.admin-toolbar {
+	gap: 12px;
+	flex-wrap: wrap;
+	align-items: center;
+}
+
+.toolbar-spacer { flex: 1 1 auto; }
+
 .section-title { margin: 0; font-size: clamp(1.1rem, 1rem + .6vw, 1.4rem); }
 
 .hide-sm { display: table-cell; }
@@ -9,7 +28,23 @@
 
 .empty { padding: 18px; color: var(--muted); }
 
-.row-actions { display: flex; gap: 8px; justify-content: center; align-items: center; }
+.row-actions {
+	display: flex;
+	gap: 8px;
+	justify-content: center;
+	align-items: center;
+	flex-wrap: wrap;
+}
+
+/* Evita que texto largo cargado por JS ensanche la vista */
+#usuariosBody td { overflow-wrap: anywhere; word-break: break-word; }
+
+.table-wrap {
+	max-width: 100%;
+	overflow-x: auto;
+	-webkit-overflow-scrolling: touch;
+	min-width: 0;
+}
 
 #usuariosBody td { vertical-align: middle; }
 /* match vertical alignment for historial table */
@@ -17,7 +52,7 @@
 
 /* Inline editor styles (reutiliza el patrón de publicaciones) */
 #editorContainer { margin-top: 12px; }
-.inline-card { background: var(--surface); border:1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
+.inline-card { background: var(--surface); border:1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; max-width: 100%; }
 .inline-header { display:flex; align-items:center; justify-content: space-between; gap: 10px; padding: 12px var(--pad); border-bottom: 1px solid var(--border); background: linear-gradient(180deg, var(--elev-1), transparent); }
 .inline-title { font-weight: 800; letter-spacing:.2px; font-size: 1.15rem; }
 .icon-btn { border:none; background: transparent; color: var(--muted); font-size: 1.25rem; line-height: 1; padding: 8px; border-radius: 10px; cursor: pointer; }
@@ -46,6 +81,54 @@
 	.field-password, .field-resp, .field-creacion { grid-column: span 6; }
 }
 @media (max-width: 640px){ .inline-form { grid-template-columns: 1fr; } .inline-form > .field { grid-column: 1 / -1; } }
+
+@media (max-width: 640px) {
+	html, body { overflow-x: hidden; }
+	.content > * { min-width: 0; }
+	.card, #editorContainer { min-width: 0; }
+
+	.layout { grid-template-rows: auto 1fr auto; }
+	.topbar {
+		height: auto;
+		padding: 12px var(--pad);
+		flex-wrap: wrap;
+		gap: 10px;
+	}
+	.topbar__spacer { display: none; }
+	.brand { flex: 1 1 100%; min-width: 0; }
+	.brand img { width: 36px; height: 36px; }
+	.brand__name { font-size: 1rem; min-width: 0; overflow-wrap: anywhere; }
+	.topbar > a.btn { margin-left: auto; }
+
+	.content { padding: var(--pad); gap: var(--pad-lg); }
+	.page-header { flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 12px; }
+
+	.admin-toolbar { width: 100%; flex-direction: column; align-items: stretch; }
+	#q { width: 100%; }
+	#btnBuscar, #btnVerTodos, #btnAgregar { width: 100%; justify-content: center; }
+	.toolbar-spacer { display: none; }
+
+	.card__header {
+		padding: var(--pad);
+		flex-wrap: wrap;
+		justify-content: flex-start;
+		align-items: flex-start;
+	}
+	.card > .table-wrap, .card > .body { padding: var(--pad); }
+	#btnCerrarResultados, #btnCerrarAgregar { width: 100%; justify-content: center; }
+
+	.inline-header { flex-wrap: wrap; }
+	.inline-title { min-width: 0; overflow-wrap: anywhere; }
+	.inline-actions { flex-wrap: wrap; justify-content: stretch; }
+	.inline-actions .btn { flex: 1 1 160px; justify-content: center; }
+
+	#crearUsuarioSection .form-actions { flex-wrap: wrap; justify-content: stretch; }
+	#crearUsuarioSection .form-actions .btn { flex: 1 1 160px; justify-content: center; }
+}
+
+@media (max-width: 420px) {
+	#usuariosSection .row-actions .btn { flex: 1 1 140px; justify-content: center; }
+}
 
 /* Crear usuario: estilos profesionales y claros */
 #crearUsuarioSection .card__header { align-items: center; }
