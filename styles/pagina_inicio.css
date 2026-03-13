@@ -122,6 +122,24 @@ img {
   border-radius: var(--radius);
   box-shadow: var(--shadow);
 }
+
+.orientation-disclaimer {
+  display: none;
+  border-color: color-mix(in oklab, var(--brand) 28%, var(--border));
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--brand) 10%, var(--surface)),
+    var(--surface)
+  );
+}
+
+.orientation-disclaimer__text {
+  margin: 0;
+  padding: var(--pad-lg);
+  color: var(--text);
+  line-height: 1.6;
+  text-wrap: pretty;
+}
 .card__header { display:flex; align-items:center; justify-content: space-between; gap: 12px; padding: var(--pad-lg); border-bottom: 1px solid var(--border); }
 .card > .quick-actions, .card > .table-wrap, .card > .grid, .card > .body { padding: var(--pad-lg); }
 
@@ -270,6 +288,10 @@ img {
   #btn_buscar, #btn_limpiar { flex: 1 1 140px; }
 
   .header-tools { width: 100%; justify-content: flex-end; flex-wrap: wrap; }
+}
+
+@media (max-width: 900px) and (orientation: portrait) {
+	.orientation-disclaimer { display: block; }
 }
 
 @media (max-width: 520px) {
