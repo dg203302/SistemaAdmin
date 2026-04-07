@@ -1,15 +1,13 @@
-import { hash_alfanum } from "/scripts/hashing.js"
+const HASH="9d96fe8ef9239d2b6e2b9e1e163a68a23ab70d72baa74f5fdf1aec920a078d1d"
 
 window.onload = function(){
     if (sessionStorage.getItem("ingreso")){
         window.location.href = "/templates/pagina_inicio.html"
     }
 }
-
-const contra_admin = "lote2025"
 document.getElementById("Form-admin").addEventListener("submit", function(eve){
     eve.preventDefault()
-    if (hash_alfanum(document.getElementById("contra-admin").value) === hash_alfanum(contra_admin)){
+    if ((CryptoJS.SHA256(document.getElementById("contra-admin").value).toString()) === HASH){
     sessionStorage.setItem("ingreso",true);
     window.location.href = "/templates/pagina_inicio.html"
     }
