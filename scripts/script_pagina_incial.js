@@ -677,13 +677,19 @@ function enforceUniqueWinners(currentWinners, allCandidates) {
 async function iniciarSorteoFlow() {
   const confirm = await Swal.fire({
     title: 'Iniciar sorteo',
-    text: '¿Deseas confirmar la realización del sorteo?',
+    text: '¿Cuántos ganadores tendrá el sorteo?',
     icon: 'question',
     showCancelButton: true,
-    confirmButtonText: 'Confirmar realización',
-    cancelButtonText: 'Cancelar'
+    showDenyButton: true,
+    confirmButtonText: '3 Ganadores',
+    denyButtonText: '1 Ganador',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#3085d6',
+    denyButtonColor: '#10b981'
   });
-  if (!confirm.isConfirmed) return;
+  
+  if (!confirm.isConfirmed && !confirm.isDenied) return;
+  const numWinners = confirm.isConfirmed ? 3 : 1;
 
   const codes = await getSorteoCodes();
   if (!codes || codes.length === 0) {
@@ -691,22 +697,22 @@ async function iniciarSorteoFlow() {
     return;
   }
 
-  // pick 3 unique winners by person (phone)
+  // pick numWinners unique winners by person (phone)
   const uniquePeopleCount = groupByPerson(codes).size;
-  if (uniquePeopleCount < 3) {
+  if (uniquePeopleCount < numWinners) {
     await Swal.fire({
       title: 'No hay suficientes participantes',
-      text: 'Se requieren al menos 3 personas distintas para realizar el sorteo (1 ganador por persona).',
+      text: `Se requieren al menos ${numWinners} persona(s) distinta(s) para realizar el sorteo (1 ganador por persona).`,
       icon: 'warning'
     });
     return;
   }
-  let currentWinners = pickWinnersUniqueByPerson(codes, 3);
+  let currentWinners = pickWinnersUniqueByPerson(codes, numWinners);
   currentWinners = enforceUniqueWinners(currentWinners, codes);
 
   // Function to show winner modal and handle actions
   async function showWinnerModal() {
-    // build html listing the three winners
+    // build html listing the winners
     const parts = [];
     for (let i = 0; i < currentWinners.length; i++) {
       const w = currentWinners[i];
@@ -718,7 +724,7 @@ async function iniciarSorteoFlow() {
     const html = `<div style="text-align:center;">${parts.join('')}</div>`;
 
     const res = await Swal.fire({
-      title: 'Ganadores',
+      title: numWinners === 1 ? 'Ganador' : 'Ganadores',
       html,
       showCancelButton: true,
       showDenyButton: true,
@@ -778,22 +784,34 @@ async function iniciarSorteoFlow() {
 
     const rowsHtml = participants.map((e, idx) => {
       const bg = idx % 2 === 0 ? '#ffffff' : '#f9fafb';
+      
+      let btnsHtml = '';
+      if (numWinners === 1) {
+        btnsHtml = `<button class="select-winner-btn" data-key="${escapeAttr(e.key)}" data-winner-target="0" style="margin:2px 4px;padding:6px 10px;border-radius:8px;border:1px solid #d1d5db;background:#f3f4f6;color:#111827;font-weight:600">🥇 Seleccionar Ganador</button>`;
+      } else {
+        btnsHtml = `
+            <button class="select-winner-btn" data-key="${escapeAttr(e.key)}" data-winner-target="0" style="margin:2px 4px;padding:6px 10px;border-radius:8px;border:1px solid #d1d5db;background:#f3f4f6;color:#111827;font-weight:600">🥇 Ganador 1</button>
+            <button class="select-winner-btn" data-key="${escapeAttr(e.key)}" data-winner-target="1" style="margin:2px 4px;padding:6px 10px;border-radius:8px;border:1px solid #d1d5db;background:#f3f4f6;color:#111827;font-weight:600">🥈 Ganador 2</button>
+            <button class="select-winner-btn" data-key="${escapeAttr(e.key)}" data-winner-target="2" style="margin:2px 4px;padding:6px 10px;border-radius:8px;border:1px solid #d1d5db;background:#f3f4f6;color:#111827;font-weight:600">🥉 Ganador 3</button>
+        `;
+      }
       return `
         <tr style="background:${bg}">
           <td style="padding:10px 12px">${escapeHtml(e.nombre) || ''}</td>
           <td style="padding:10px 12px;color:#374151">${escapeHtml(e.telef || '')}</td>
           <td style="padding:10px 12px;font-weight:600">${escapeHtml(e.codigo)}</td>
           <td style="padding:10px 12px;text-align:right;white-space:nowrap;">
-            <button class="select-winner-btn" data-key="${escapeAttr(e.key)}" data-winner-target="0" style="margin:2px 4px;padding:6px 10px;border-radius:8px;border:1px solid #d1d5db;background:#f3f4f6;color:#111827;font-weight:600">🥇 Ganador 1</button>
-            <button class="select-winner-btn" data-key="${escapeAttr(e.key)}" data-winner-target="1" style="margin:2px 4px;padding:6px 10px;border-radius:8px;border:1px solid #d1d5db;background:#f3f4f6;color:#111827;font-weight:600">🥈 Ganador 2</button>
-            <button class="select-winner-btn" data-key="${escapeAttr(e.key)}" data-winner-target="2" style="margin:2px 4px;padding:6px 10px;border-radius:8px;border:1px solid #d1d5db;background:#f3f4f6;color:#111827;font-weight:600">🥉 Ganador 3</button>
+            ${btnsHtml}
           </td>
         </tr>
       `;
     }).join('');
 
+    const descText = numWinners === 1 
+      ? 'Elige quién será el <strong>ganador</strong>.' 
+      : 'Elige quién será <strong>ganador 1</strong>, <strong>ganador 2</strong> o <strong>ganador 3</strong>.';
     const listHtml = `
-      <div style="font-size:14px;color:#374151;margin-top:6px;margin-bottom:8px">Elige quién será <strong>ganador 1</strong>, <strong>ganador 2</strong> o <strong>ganador 3</strong>. Los ganadores deben ser únicos; si seleccionas el mismo participante, se reubicará automáticamente.</div>
+      <div style="font-size:14px;color:#374151;margin-top:6px;margin-bottom:8px">${descText} Los ganadores deben ser únicos; si seleccionas el mismo participante, se reubicará automáticamente.</div>
       <div style="max-height:50vh;overflow:auto;border:1px solid #e5e7eb;border-radius:10px">
         <table style="width:100%;border-collapse:collapse">
           <thead>
@@ -981,12 +999,15 @@ async function crearAvisoSorteo(ganador) {
       for (let i = 0; i < ganador.length; i++) {
         nombres.push(await resolveNombre(ganador[i]));
       }
-      // Hay 3 ganadores por sorteo: listar solo nombres (sin códigos)
-      const parts = nombres.map((n, idx) => `#${idx + 1}: ${n}`);
-      descripcion = `Se realizó un sorteo. Ganadores: ${parts.join(' | ')}`;
+      if (ganador.length === 1) {
+        descripcion = `Se realizó un sorteo. Ganador: ${nombres[0]}`;
+      } else {
+        const parts = nombres.map((n, idx) => `#${idx + 1}: ${n}`);
+        descripcion = `Se realizó un sorteo. Ganadores: ${parts.join(' | ')}`;
+      }
     } else {
       const nombre = await resolveNombre(ganador);
-      descripcion = `Se realizó un sorteo. Ganador #1: ${nombre}`;
+      descripcion = `Se realizó un sorteo. Ganador: ${nombre}`;
     }
 
     const { data, error } = await client.from('Avisos').insert([{
