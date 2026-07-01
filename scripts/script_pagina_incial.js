@@ -1,8 +1,4 @@
-const supabaseUrl = 'https://qxbkfmvugutmggqwxhrb.supabase.co'
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4YmtmbXZ1Z3V0bWdncXd4aHJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgyNTEzMDEsImV4cCI6MjA3MzgyNzMwMX0.Qsx0XpQaSgt2dKUaLs8GvMmH8Qt6Dp_TQM25a_WOa8E'
-const { createClient } = supabase
-const client = createClient(supabaseUrl, supabaseKey)
-
+const client = window.supabaseClient;
 const cantidad_clientes_activos = document.getElementById('clien_act');
 const cantidad_puntos_totales_asign = document.getElementById('punt_totales_asign');
 const cantidad_puntos_totales_rest = document.getElementById('punt_totales_rest');
@@ -10,7 +6,7 @@ const cantidad_promos_activas = document.getElementById('prom_act');
 const cantidad_codigos_sin_valid = document.getElementById('codigos_sin_v');
 const cantidad_codigos_validados = document.getElementById('codigos_v');
 
-async function cargar_cantidades(){
+async function cargar_cantidades() {
   const [clientes, promos, codigos_promos] = await Promise.all([
     client.from('Clientes').select('Telef'),
     client.from('Promos_puntos').select('id_promo'),
@@ -32,27 +28,27 @@ async function cargar_cantidades(){
   }
 }
 
-async function cargar_actividad_reciente(){
+async function cargar_actividad_reciente() {
   const contenedor_act = document.getElementById('actividadBody');
-  const {data,error} = await client
-  .from('Historial_Puntos')
-  .select('*')
-  .order("Fecha_Asing", { ascending: false });
-  
-  if (error){
+  const { data, error } = await client
+    .from('Historial_Puntos')
+    .select('*')
+    .order("Fecha_Asing", { ascending: false });
+
+  if (error) {
     console.error('error al cargar la actividad reciente', error);
     return;
   }
   if (!contenedor_act) return;
   contenedor_act.innerHTML = '';
-  for (const act of data){
+  for (const act of data) {
     contenedor_act.appendChild(await renderiz_act(act));
   }
   // Ajustar alto del contenedor de tabs para que no corte el contenido
-  try { window.adjustTabContentHeight?.(); } catch(_) {}
+  try { window.adjustTabContentHeight?.(); } catch (_) { }
 }
 
-async function renderiz_act(actividad){
+async function renderiz_act(actividad) {
   // actividad is expected to have: Telef_cliente, Fecha_Asing, Cantidad_Puntos, Monto_gastado
   const tr = document.createElement('tr');
 
@@ -82,25 +78,25 @@ async function renderiz_act(actividad){
   tdMonto.textContent = (actividad.Monto_gastado ?? actividad.Monto_gasto ?? actividad.Monto ?? '') + '';
   tr.appendChild(tdMonto);
 
-    return tr;
-  }
+  return tr;
+}
 
-async function obtnom(tele){
-  const {data,error} = await client
-  .from("Clientes")
-  .select("Nombre")
-  .eq("Telef",tele)
-  .single()
-  if(error){
+async function obtnom(tele) {
+  const { data, error } = await client
+    .from("Clientes")
+    .select("Nombre")
+    .eq("Telef", tele)
+    .single()
+  if (error) {
     console.log(error)
   }
-  else{
+  else {
     return data.Nombre;
   }
 }
 
-function btnexp(){
-  let btn=document.getElementById("boton_exp")
+function btnexp() {
+  let btn = document.getElementById("boton_exp")
   let bodytabla = document.getElementById("actividadBody")
   if (!btn || !bodytabla) return
   // also try to expand/collapse the codes tables if present
@@ -108,28 +104,28 @@ function btnexp(){
   const codVal = document.getElementById('tab_validados_body');
 
   const expandAll = () => {
-    if (bodytabla){ bodytabla.style.maxHeight = 'none'; bodytabla.style.overflowY = 'visible'; }
-    if (codSin){ codSin.style.maxHeight = 'none'; codSin.style.overflowY = 'visible'; }
-    if (codVal){ codVal.style.maxHeight = 'none'; codVal.style.overflowY = 'visible'; }
+    if (bodytabla) { bodytabla.style.maxHeight = 'none'; bodytabla.style.overflowY = 'visible'; }
+    if (codSin) { codSin.style.maxHeight = 'none'; codSin.style.overflowY = 'visible'; }
+    if (codVal) { codVal.style.maxHeight = 'none'; codVal.style.overflowY = 'visible'; }
     btn.textContent = 'Contraer';
     btn.onclick = collapseAll;
-    try { requestAnimationFrame(() => window.adjustTabContentHeight?.()); } catch(_) {}
+    try { requestAnimationFrame(() => window.adjustTabContentHeight?.()); } catch (_) { }
   };
 
   const collapseAll = () => {
-    if (bodytabla){ bodytabla.style.maxHeight = 'calc(44px * 3)'; bodytabla.style.overflowY = 'hidden'; }
-    if (codSin){ codSin.style.maxHeight = 'calc(44px * 3)'; codSin.style.overflowY = 'hidden'; }
-    if (codVal){ codVal.style.maxHeight = 'calc(44px * 3)'; codVal.style.overflowY = 'hidden'; }
+    if (bodytabla) { bodytabla.style.maxHeight = 'calc(44px * 3)'; bodytabla.style.overflowY = 'hidden'; }
+    if (codSin) { codSin.style.maxHeight = 'calc(44px * 3)'; codSin.style.overflowY = 'hidden'; }
+    if (codVal) { codVal.style.maxHeight = 'calc(44px * 3)'; codVal.style.overflowY = 'hidden'; }
     btn.textContent = 'Expandir';
     btn.onclick = btnexp;
     // readjust height when collapsing
-    try { window.adjustTabContentHeight?.(); } catch(_) {}
+    try { window.adjustTabContentHeight?.(); } catch (_) { }
   };
 
   expandAll();
 }
 // Ajusta la altura visible del contenedor de tabs al alto del panel activo
-function adjustTabContentHeight(){
+function adjustTabContentHeight() {
   const container = document.querySelector('.tabs .tab-content');
   const active = document.querySelector('.tab-panel.active');
   if (!container || !active) return;
@@ -143,19 +139,19 @@ function adjustTabContentHeight(){
 }
 
 document.querySelectorAll(".tab-btn").forEach(btn => {
-          btn.addEventListener("click", () => {
-            document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-            document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
-            btn.classList.add("active");
-            const target = document.querySelector(btn.dataset.tabTarget);
-            if (target) target.classList.add("active");
-            try { window.adjustTabContentHeight?.(); } catch(_) {}
-          });
-        });
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+    btn.classList.add("active");
+    const target = document.querySelector(btn.dataset.tabTarget);
+    if (target) target.classList.add("active");
+    try { window.adjustTabContentHeight?.(); } catch (_) { }
+  });
+});
 
 window.adjustTabContentHeight = adjustTabContentHeight;
 
-window.onload = async function(){
+window.onload = async function () {
   cargar_cantidades()
   cargar_actividad_reciente()
   cargar_codigos_validados_no_validados()
@@ -173,7 +169,7 @@ document.getElementById('validarCodigoGanador')?.addEventListener('click', async
 });
 
 // Prompt for a winning code, validate against codigos tables and remove if matched
-async function validarCodigoGanadorFlow(){
+async function validarCodigoGanadorFlow() {
   const { value: codigoIngresado, isConfirmed } = await Swal.fire({
     title: 'Validar código ganador',
     input: 'text',
@@ -190,31 +186,31 @@ async function validarCodigoGanadorFlow(){
   if (!cleaned) return;
 
   // Try to find and delete the code in candidate tables. Returns true when deleted.
-  async function findAndDelete(){
-      try{
-        // try to find exact-match in likely code columns
-        const { data: found, error: selErr } = await client.from('Codigos_sorteos').select('*').or('codigo_sorteo.eq.' + cleaned).limit(1).single();
-        if (!selErr && found){
-          const telef = found?.Telef ?? found?.telef ?? found?.telefono ?? found?.telefono_cliente ?? found?.Telef_cliente ?? '';
-          let nombre = '';
-          try{
-            if (telef) nombre = (await obtNomClie(telef)) || '';
-          } catch(_){ /* ignore */ }
-          // delete the exact matching row(s) for that code
-          const { error: delErr } = await client.from('Codigos_sorteos').delete().eq('codigo_sorteo', cleaned);
-          if (delErr){
-            console.error('Error al eliminar en', 'Codigos_sorteos', delErr);
-            return { ok: false, table: 'Codigos_sorteos', error: delErr };
-          }
-          return { ok: true, table: 'Codigos_sorteos', telef: telef ? String(telef) : '', nombre: nombre ? String(nombre) : '' };
+  async function findAndDelete() {
+    try {
+      // try to find exact-match in likely code columns
+      const { data: found, error: selErr } = await client.from('Codigos_sorteos').select('*').or('codigo_sorteo.eq.' + cleaned).limit(1).single();
+      if (!selErr && found) {
+        const telef = found?.Telef ?? found?.telef ?? found?.telefono ?? found?.telefono_cliente ?? found?.Telef_cliente ?? '';
+        let nombre = '';
+        try {
+          if (telef) nombre = (await obtNomClie(telef)) || '';
+        } catch (_) { /* ignore */ }
+        // delete the exact matching row(s) for that code
+        const { error: delErr } = await client.from('Codigos_sorteos').delete().eq('codigo_sorteo', cleaned);
+        if (delErr) {
+          console.error('Error al eliminar en', 'Codigos_sorteos', delErr);
+          return { ok: false, table: 'Codigos_sorteos', error: delErr };
         }
-      }catch(e){
-        return { ok: false };
+        return { ok: true, table: 'Codigos_sorteos', telef: telef ? String(telef) : '', nombre: nombre ? String(nombre) : '' };
       }
+    } catch (e) {
+      return { ok: false };
     }
+  }
   const result = await findAndDelete();
 
-  if (result.ok){
+  if (result.ok) {
     const infoHtml = `
       <div style="text-align:left;">
         <div style="margin-bottom:10px;">
@@ -240,24 +236,24 @@ async function validarCodigoGanadorFlow(){
             .delete()
             .eq('titulo_aviso', 'Sorteo finalizado')
             .eq('titulo_flotante', 'Sorteo');
-          if (delAvisoErr){
+          if (delAvisoErr) {
             console.error('Error al eliminar aviso de sorteo:', delAvisoErr);
           }
-        } catch(e){
+        } catch (e) {
           console.error('Exception al eliminar aviso de sorteo:', e);
         }
       }
     }
-    catch(e){
+    catch (e) {
       console.error('Exception al verificar códigos restantes:', e);
     }
-    try { window.location.reload(); } catch(_) { }
+    try { window.location.reload(); } catch (_) { }
     return;
   }
   await Swal.fire({ title: 'No encontrado', text: 'El código no coincide con ningún registro de sorteo', icon: 'warning' });
 }
 
-document.getElementById("validarCodigos").onclick = async function(){
+document.getElementById("validarCodigos").onclick = async function () {
   const { value: CodigoPromo, isConfirmed } = await Swal.fire({
     title: 'Ingresa el codigo de la promoción',
     input: 'text',
@@ -311,7 +307,7 @@ document.getElementById("validarCodigos").onclick = async function(){
           promoFechas = fi && ff ? `${fi} - ${ff}` : (fi || ff);
         }
       }
-    } catch(_) {}
+    } catch (_) { }
 
     // Fallback: si el código trae el nombre de promo en otra columna
     if (!promoNombre) {
@@ -397,7 +393,7 @@ document.getElementById("validarCodigos").onclick = async function(){
     });
     cargar_cantidades();
     recargar_tablas();
-  } catch(e) {
+  } catch (e) {
     await Swal.fire({
       title: 'Error',
       text: 'Ocurrió un error al verificar el código',
@@ -406,12 +402,12 @@ document.getElementById("validarCodigos").onclick = async function(){
     });
   }
 }
-async function cargar_codigos_validados_no_validados(){
-  const {data,error} = await client
-  .from('Codigos_promos_puntos')
-  .select('*')
-  .order("fecha_creac", { ascending: false });
-  if (error){
+async function cargar_codigos_validados_no_validados() {
+  const { data, error } = await client
+    .from('Codigos_promos_puntos')
+    .select('*')
+    .order("fecha_creac", { ascending: false });
+  if (error) {
     Swal.fire({
       title: 'Error',
       text: 'Error al cargar los códigos',
@@ -425,8 +421,8 @@ async function cargar_codigos_validados_no_validados(){
   if (!contenedor_cod_sin_val || !contenedor_cod_val) return;
   contenedor_cod_sin_val.innerHTML = '';
   contenedor_cod_val.innerHTML = '';
-  for (const cod of data){
-    if (cod.Canjeado === 0){
+  for (const cod of data) {
+    if (cod.Canjeado === 0) {
       const tr = document.createElement('tr');
       const tdNom = document.createElement('td');
       tdNom.style.textAlign = "center";
@@ -442,7 +438,7 @@ async function cargar_codigos_validados_no_validados(){
       tr.appendChild(tdFec);
       contenedor_cod_sin_val.appendChild(tr);
     }
-    else{
+    else {
       const tr = document.createElement('tr');
       const tdCod = document.createElement('td');
       const tdNom = document.createElement('td');
@@ -460,16 +456,16 @@ async function cargar_codigos_validados_no_validados(){
     }
   }
 }
-async function recargar_tablas(){
+async function recargar_tablas() {
   window.location.reload();
 }
 
-async function obtNomClie(tele){
-  const {data,error} = await client
-  .from("Clientes")
-  .select("Nombre")
-  .eq("Telef",tele)
-  .single();
+async function obtNomClie(tele) {
+  const { data, error } = await client
+    .from("Clientes")
+    .select("Nombre")
+    .eq("Telef", tele)
+    .single();
 
   if (error) {
     Swal.fire({
@@ -483,17 +479,17 @@ async function obtNomClie(tele){
   return data ? data.Nombre : null;
 }
 // Escapa HTML para insertar texto en HTML seguro
-function escapeHtml(s){
+function escapeHtml(s) {
   const str = s == null ? '' : String(s);
-  return str.replace(/[&<>"]|'/g, function(ch){
-    return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]);
+  return str.replace(/[&<>"]|'/g, function (ch) {
+    return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]);
   });
 }
-function escapeAttr(s){
+function escapeAttr(s) {
   const str = s == null ? '' : String(s);
-  return str.replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return str.replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
-function limpiar_busqueda(){
+function limpiar_busqueda() {
   const input = document.getElementById('buscador_codigo');
   if (!input) return;
   input.value = '';
@@ -502,7 +498,7 @@ function limpiar_busqueda(){
     f.style.display = '';
   });
 }
-function buscar_codigo(){
+function buscar_codigo() {
   const input = document.getElementById('buscador_codigo');
   if (!input) return;
   const valor = input.value.trim();
@@ -540,11 +536,11 @@ function buscar_codigo(){
   });
 }
 
-async function cargar_btn_sorteo(){
+async function cargar_btn_sorteo() {
   const { data, error } = await client
-  .from('Promos_puntos')
-  .select('Nombre_promo')
-  .ilike('Nombre_promo', '%sorteo%');
+    .from('Promos_puntos')
+    .select('Nombre_promo')
+    .ilike('Nombre_promo', '%sorteo%');
   if (error) {
     Swal.fire({
       title: 'Error',
@@ -570,49 +566,49 @@ async function cargar_btn_sorteo(){
 }
 
 // Helper: obtiene códigos para sorteo. Intenta tabla 'Codigos_sorteo' y si no existe usa 'Codigos_promos_puntos'
-async function getSorteoCodes(){
+async function getSorteoCodes() {
   // Try main candidate
-  try{
+  try {
     const tryTables = [
       // table name kept as-is; mapping normalizes to { codigo, telef }
       { table: 'Codigos_sorteo', map: r => ({ codigo: r.codigo_sorteo ?? r.codigo ?? r.codigo_canjeado ?? r.codigo_canjeado, telef: r.Telef ?? r.telef ?? r.telefono ?? r.telefono_cliente ?? null }) },
       { table: 'Codigos_sorteos', map: r => ({ codigo: r.codigo_sorteo ?? r.codigo ?? r.codigo_canjeado, telef: r.Telef ?? r.telef ?? r.telefono }) }
     ];
-    for (const candidate of tryTables){
-      try{
+    for (const candidate of tryTables) {
+      try {
         const { data, error } = await client.from(candidate.table).select('*');
-        if (!error && Array.isArray(data) && data.length > 0){
+        if (!error && Array.isArray(data) && data.length > 0) {
           const mapped = data.map(candidate.map).filter(x => x && (x.codigo || x.codigo === 0));
           // normalize codigo/telef to strings
           return mapped.map(m => ({ codigo: m.codigo == null ? '' : String(m.codigo), telef: m.telef == null ? '' : String(m.telef) }));
         }
-      } catch(e){ /* ignore and try next */ }
+      } catch (e) { /* ignore and try next */ }
     }
-  } catch(e){ console.error(e); }
+  } catch (e) { console.error(e); }
   return [];
 }
 
-function pickRandom(arr){
+function pickRandom(arr) {
   if (!arr || arr.length === 0) return null;
-  return arr[Math.floor(Math.random()*arr.length)];
+  return arr[Math.floor(Math.random() * arr.length)];
 }
 
 // pick n unique random elements from array
-function pickRandomMultiple(arr, n){
+function pickRandomMultiple(arr, n) {
   if (!Array.isArray(arr) || arr.length === 0) return [];
   const copy = arr.slice();
   const out = [];
   const limit = Math.min(n, copy.length);
-  for (let i=0;i<limit;i++){
-    const idx = Math.floor(Math.random()*copy.length);
-    out.push(copy.splice(idx,1)[0]);
+  for (let i = 0; i < limit; i++) {
+    const idx = Math.floor(Math.random() * copy.length);
+    out.push(copy.splice(idx, 1)[0]);
   }
   return out;
 }
 
 // Key used to enforce "one winner per person".
 // Prefer phone (Telef) when present; fallback to code when phone is missing.
-function personKey(entry){
+function personKey(entry) {
   if (!entry) return '';
   const telef = entry.telef == null ? '' : String(entry.telef).trim();
   if (telef) return `tel:${telef}`;
@@ -620,9 +616,9 @@ function personKey(entry){
   return `code:${codigo}`;
 }
 
-function groupByPerson(entries){
+function groupByPerson(entries) {
   const map = new Map();
-  for (const e of (entries || [])){
+  for (const e of (entries || [])) {
     const key = personKey(e);
     if (!key) continue;
     if (!map.has(key)) map.set(key, []);
@@ -633,13 +629,13 @@ function groupByPerson(entries){
 
 // Picks N winners where each winner is a unique person (based on phone).
 // If a person has multiple codes, pick 1 random code for that person.
-function pickWinnersUniqueByPerson(entries, n){
+function pickWinnersUniqueByPerson(entries, n) {
   const groups = groupByPerson(entries);
   const keys = Array.from(groups.keys());
   if (keys.length === 0) return [];
   const pickedKeys = pickRandomMultiple(keys, n);
   const winners = [];
-  for (const k of pickedKeys){
+  for (const k of pickedKeys) {
     const list = groups.get(k) || [];
     const picked = pickRandom(list) || list[0];
     if (picked) winners.push(picked);
@@ -648,18 +644,18 @@ function pickWinnersUniqueByPerson(entries, n){
 }
 
 // Ensures currentWinners has unique people; replaces duplicates with available candidates.
-function enforceUniqueWinners(currentWinners, allCandidates){
+function enforceUniqueWinners(currentWinners, allCandidates) {
   const winners = Array.isArray(currentWinners) ? currentWinners.slice() : [];
   const used = new Set();
 
   const groups = groupByPerson(allCandidates);
   const availableKeys = Array.from(groups.keys());
 
-  for (let i = 0; i < winners.length; i++){
+  for (let i = 0; i < winners.length; i++) {
     const w = winners[i];
     const key = personKey(w);
     if (!key) continue;
-    if (!used.has(key)){
+    if (!used.has(key)) {
       used.add(key);
       continue;
     }
@@ -669,7 +665,7 @@ function enforceUniqueWinners(currentWinners, allCandidates){
     if (!replacementKey) continue;
     const list = groups.get(replacementKey) || [];
     const replacement = pickRandom(list) || list[0];
-    if (replacement){
+    if (replacement) {
       winners[i] = replacement;
       used.add(replacementKey);
     }
@@ -678,7 +674,7 @@ function enforceUniqueWinners(currentWinners, allCandidates){
   return winners;
 }
 
-async function iniciarSorteoFlow(){
+async function iniciarSorteoFlow() {
   const confirm = await Swal.fire({
     title: 'Iniciar sorteo',
     text: '¿Deseas confirmar la realización del sorteo?',
@@ -690,14 +686,14 @@ async function iniciarSorteoFlow(){
   if (!confirm.isConfirmed) return;
 
   const codes = await getSorteoCodes();
-  if (!codes || codes.length === 0){
+  if (!codes || codes.length === 0) {
     await Swal.fire({ title: 'Sin códigos', text: 'No se encontraron códigos para sortear.', icon: 'warning' });
     return;
   }
 
   // pick 3 unique winners by person (phone)
   const uniquePeopleCount = groupByPerson(codes).size;
-  if (uniquePeopleCount < 3){
+  if (uniquePeopleCount < 3) {
     await Swal.fire({
       title: 'No hay suficientes participantes',
       text: 'Se requieren al menos 3 personas distintas para realizar el sorteo (1 ganador por persona).',
@@ -709,15 +705,15 @@ async function iniciarSorteoFlow(){
   currentWinners = enforceUniqueWinners(currentWinners, codes);
 
   // Function to show winner modal and handle actions
-  async function showWinnerModal(){
+  async function showWinnerModal() {
     // build html listing the three winners
     const parts = [];
-    for (let i=0;i<currentWinners.length;i++){
+    for (let i = 0; i < currentWinners.length; i++) {
       const w = currentWinners[i];
       const name = w.telef ? (await obtNomClie(w.telef)) : '';
       const phone = w.telef ? String(w.telef) : '';
       const phoneHtml = phone ? ` <span style=\"color:#888\">(${escapeHtml(phone)})</span>` : '';
-      parts.push(`<div style=\"margin-bottom:8px\"><strong>#${i+1}:</strong> <span style=\"font-weight:700\">${escapeHtml(w.codigo || '')}</span> <span style=\"color:#666\">${escapeHtml(name || '')}</span>${phoneHtml}</div>`);
+      parts.push(`<div style=\"margin-bottom:8px\"><strong>#${i + 1}:</strong> <span style=\"font-weight:700\">${escapeHtml(w.codigo || '')}</span> <span style=\"color:#666\">${escapeHtml(name || '')}</span>${phoneHtml}</div>`);
     }
     const html = `<div style="text-align:center;">${parts.join('')}</div>`;
 
@@ -733,7 +729,7 @@ async function iniciarSorteoFlow(){
       width: '600px'
     });
 
-    if (res.isDenied){
+    if (res.isDenied) {
       // Show selection list
       await showSelectionList();
       // After selection, show winner modal again
@@ -741,37 +737,37 @@ async function iniciarSorteoFlow(){
       return;
     }
 
-    if (res.isConfirmed){
+    if (res.isConfirmed) {
       const codesArr = currentWinners.map(w => w.codigo);
       const nombresArr = [];
-      for (const w of currentWinners){
+      for (const w of currentWinners) {
         let nombre = '';
-        try{
+        try {
           nombre = w?.telef ? (await obtNomClie(w.telef)) : '';
-        } catch(_){ /* ignore */ }
+        } catch (_) { /* ignore */ }
         nombresArr.push((nombre || '').trim() || 'Sin nombre');
       }
       await Swal.fire({ title: 'Sorteo finalizado', text: `Ganadores: ${nombresArr.join(' | ')}`, icon: 'success' });
       // create an Aviso announcing the winners
-      try{
+      try {
         await crearAvisoSorteo(currentWinners);
-      } catch(e){ console.error('Error creando aviso de sorteo:', e); }
+      } catch (e) { console.error('Error creando aviso de sorteo:', e); }
       await cleanupCodigosSorteo(codesArr);
       await eliminar_sorteo();
       // actualizar visibilidad del botón de validar (en caso de que no se haga reload)
-      try{ await verificar_ganador_existente(); } catch(e){ /* ignore */ }
+      try { await verificar_ganador_existente(); } catch (e) { /* ignore */ }
       window.location.reload();
       return;
     }
     // else cancelled
   }
 
-  async function showSelectionList(){
+  async function showSelectionList() {
     // Build HTML table of participants (1 row per client/person).
     // NOTE: We still keep ALL codes in `codes` for the draw. This list is only for manual replacement.
     const groups = groupByPerson(codes);
     const participants = [];
-    for (const [key, list] of groups.entries()){
+    for (const [key, list] of groups.entries()) {
       const sample = (list && list[0]) ? list[0] : null;
       const telef = sample?.telef ? String(sample.telef) : '';
       const nombre = telef ? (await obtNomClie(telef)) : '';
@@ -836,9 +832,9 @@ async function iniciarSorteoFlow(){
             // enforce uniqueness by person (phone); fallback to code when phone missing
             const selKey = personKey(selected);
             const existingIndex = currentWinners.findIndex(w => personKey(w) === selKey);
-            if (existingIndex === -1){
+            if (existingIndex === -1) {
               currentWinners[target] = selected;
-            } else if (existingIndex === target){
+            } else if (existingIndex === target) {
               // already in the same position
             } else {
               // swap to keep unique people
@@ -859,7 +855,7 @@ async function iniciarSorteoFlow(){
   await showWinnerModal();
 }
 
-async function cleanupCodigosSorteo(codigos_ganadores){
+async function cleanupCodigosSorteo(codigos_ganadores) {
   if (!client) return;
   try {
     // Normalizar ganadores a strings
@@ -868,7 +864,7 @@ async function cleanupCodigosSorteo(codigos_ganadores){
 
     // Leer todos los códigos existentes
     const { data, error: selErr } = await client.from('Codigos_sorteos').select('codigo_sorteo');
-    if (selErr){
+    if (selErr) {
       console.error('Error leyendo Codigos_sorteos:', selErr);
       return;
     }
@@ -876,50 +872,34 @@ async function cleanupCodigosSorteo(codigos_ganadores){
 
     // Calcular no-ganadores
     const toDelete = all.filter(c => c !== '' && !winnersSet.has(String(c).trim()));
-    if (toDelete.length === 0){
+    if (toDelete.length === 0) {
       console.log('cleanupCodigosSorteo: no hay códigos para eliminar');
       return;
     }
 
     // Eliminar en una sola llamada (o en lotes si hace falta)
     const { error: delErr } = await client.from('Codigos_sorteos').delete().in('codigo_sorteo', toDelete);
-    if (delErr){
+    if (delErr) {
       console.error('Error al eliminar no-ganadores en Codigos_sorteos:', delErr);
       await Swal.fire({ title: 'Error', text: 'No se pudieron eliminar las filas de la tabla de códigos de sorteo.', icon: 'error', confirmButtonText: 'OK' });
       return;
     }
     console.log(`Limpieza: eliminados ${toDelete.length} códigos no-ganadores en Codigos_sorteos`);
     return;
-  } catch(err){
+  } catch (err) {
     console.error(err);
     await Swal.fire({ title: 'Error', text: 'No se pudieron eliminar las filas de la tabla de códigos de sorteo.', icon: 'error', confirmButtonText: 'OK' });
     return;
   }
 }
-async function eliminar_sorteo(){
+async function eliminar_sorteo() {
   if (!client) return;
-  try{
-      const { error } = await client.from("Promos_puntos")
+  try {
+    const { error } = await client.from("Promos_puntos")
       .delete()
       .ilike("Nombre_promo", "%sorteo%");
-      if (error){
-        console.error('Error al eliminar el sorteo:', error);
-        await Swal.fire({
-          title: 'Error',
-          text: 'No se pudo eliminar el sorteo activo.',
-          icon: 'error',
-          confirmButtonText: 'OK'
-        });
-        return;
-      }
-      console.log(`Sorteo eliminado de Promos_puntos`);
-      // Recargar botón de sorteo
-  await cargar_btn_sorteo();
-  // actualizar visibilidad del botón de validar (si corresponde)
-  try{ await verificar_ganador_existente(); } catch(e){ /* ignore */ }
-      return;
-    } catch(err){
-      console.error(err);
+    if (error) {
+      console.error('Error al eliminar el sorteo:', error);
       await Swal.fire({
         title: 'Error',
         text: 'No se pudo eliminar el sorteo activo.',
@@ -928,15 +908,31 @@ async function eliminar_sorteo(){
       });
       return;
     }
+    console.log(`Sorteo eliminado de Promos_puntos`);
+    // Recargar botón de sorteo
+    await cargar_btn_sorteo();
+    // actualizar visibilidad del botón de validar (si corresponde)
+    try { await verificar_ganador_existente(); } catch (e) { /* ignore */ }
+    return;
+  } catch (err) {
+    console.error(err);
+    await Swal.fire({
+      title: 'Error',
+      text: 'No se pudo eliminar el sorteo activo.',
+      icon: 'error',
+      confirmButtonText: 'OK'
+    });
+    return;
+  }
 }
 
-async function verificar_ganador_existente(){
+async function verificar_ganador_existente() {
   const btn = document.getElementById('validarCodigoGanador');
   if (!btn) return false;
-  try{
+  try {
     // Si aún existe una promo que contiene 'sorteo', consideramos que el sorteo está activo
     const { data: promos, error: promosErr } = await client.from('Promos_puntos').select('id_promo').ilike('Nombre_promo', '%sorteo%').limit(1);
-    if (!promosErr && Array.isArray(promos) && promos.length > 0){
+    if (!promosErr && Array.isArray(promos) && promos.length > 0) {
       // sorteo activo -> ocultar botón
       btn.style.display = 'none';
       return false;
@@ -944,19 +940,19 @@ async function verificar_ganador_existente(){
 
     // No hay promo de sorteo activa: mostrar el botón sólo si existen códigos candidatos
     const tryTables = ['Codigos_sorteos'];
-    for (const table of tryTables){
-      try{
+    for (const table of tryTables) {
+      try {
         const { data, error } = await client.from(table).select('*').limit(3);
-        if (!error && Array.isArray(data) && data.length > 0){
+        if (!error && Array.isArray(data) && data.length > 0) {
           btn.style.display = '';
           return true;
         }
-      } catch(e){
+      } catch (e) {
         // tabla no disponible o error -> probar siguiente tabla
         console.debug('verificar_ganador_existente: error consultando', table, e?.message || e);
       }
     }
-  } catch(err){
+  } catch (err) {
     console.error('verificar_ganador_existente error:', err);
   }
   btn.style.display = 'none';
@@ -964,9 +960,9 @@ async function verificar_ganador_existente(){
 }
 
 // Inserta un aviso en la tabla Avisos anunciando el ganador del sorteo
-async function crearAvisoSorteo(ganador){
+async function crearAvisoSorteo(ganador) {
   if (!client || !ganador) return null;
-  try{
+  try {
     const now = new Date();
     const yyyy = now.getFullYear();
     const mm = String(now.getMonth() + 1).padStart(2, '0');
@@ -980,9 +976,9 @@ async function crearAvisoSorteo(ganador){
     };
 
     let descripcion = '';
-    if (Array.isArray(ganador)){
+    if (Array.isArray(ganador)) {
       const nombres = [];
-      for (let i=0;i<ganador.length;i++){
+      for (let i = 0; i < ganador.length; i++) {
         nombres.push(await resolveNombre(ganador[i]));
       }
       // Hay 3 ganadores por sorteo: listar solo nombres (sin códigos)
@@ -999,12 +995,12 @@ async function crearAvisoSorteo(ganador){
       descripcion_aviso: descripcion,
       vigencia: vigenciaHoy
     }]).select();
-    if (error){
+    if (error) {
       console.error('Error al crear aviso de sorteo:', error);
       return null;
     }
     return data && data[0] ? data[0] : null;
-  } catch(e){
+  } catch (e) {
     console.error('Exception creating aviso:', e);
     return null;
   }

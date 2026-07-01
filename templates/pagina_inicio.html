@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -7,12 +8,13 @@
     <title>Panel de Administración</title>
     <link rel="stylesheet" href="../styles/pagina_inicio.css" />
 </head>
+
 <body class="layout">
     <header class="topbar" role="banner">
-            <div class="brand">
-                <img src="/logo_lote.png" alt="Logo_lote">
-                <span class="brand__name">Sistema de Administración</span>
-            </div>
+        <div class="brand">
+            <img src="/logo_lote.png" alt="Logo_lote">
+            <span class="brand__name">Sistema de Administración</span>
+        </div>
         <div class="topbar__spacer" aria-hidden="true"></div>
         <nav aria-label="Ayuda">
             <a class="btn ghost small" href="mailto:djsolutions287@gmail.com?subject=Admin%20Usuarios">Ayuda</a>
@@ -36,8 +38,9 @@
                 <h1>Inicio</h1>
                 <p class="muted">Gestiona clientes, puntos y publicaciones desde un solo lugar.</p>
             </div>
-            <a class="action" id="boton_refrescar" href="javascript:void(0)" onclick="cargar_cantidades()" aria-label="Recargar montos">
-                <span class="action__icon" aria-hidden="true">🔄</span> 
+            <a class="action" id="boton_refrescar" href="javascript:void(0)" onclick="cargar_cantidades()"
+                aria-label="Recargar montos">
+                <span class="action__icon" aria-hidden="true">🔄</span>
                 <span class="action__label">Recargar pagina</span>
             </a>
         </header>
@@ -76,14 +79,14 @@
 
                 <a class="action" href="#" id="validarCodigoGanador" aria-label="Validar un codigo de un cliente">
                     <span class="action__icon" aria-hidden="true">✅</span>
-                    <span class="action__label" >Validar codigo ganador del sorteo</span>
+                    <span class="action__label">Validar codigo ganador del sorteo</span>
                 </a>
 
                 <a class="action" href="#" id="validarCodigos" aria-label="Validar un codigo de un cliente">
                     <span class="action__icon" aria-hidden="true">✅</span>
-                    <span class="action__label" >Validar codigos</span>
+                    <span class="action__label">Validar codigos</span>
                 </a>
-                
+
                 <a class="action" href="/templates/Registrar_puntos.html" aria-label="Registrar puntos a un cliente">
                     <span class="action__icon" aria-hidden="true">➕</span>
                     <span class="action__label">Registrar puntos</span>
@@ -104,7 +107,8 @@
             <header class="card__header">
                 <h2 id="actividad-title">Registros y códigos</h2>
                 <div class="conte_busq">
-                    <input type="text" class="input" id="buscador_codigo" placeholder="Filtrar por Nombre/Telefono" aria-label="Buscar código">
+                    <input type="text" class="input" id="buscador_codigo" placeholder="Filtrar por Nombre/Telefono"
+                        aria-label="Buscar código">
                     <div class="conte_busq_btns">
                         <button class="action" id="btn_buscar" onclick="buscar_codigo()">Buscar</button>
                         <button class="action" id="btn_limpiar" onclick="limpiar_busqueda()">Limpiar</button>
@@ -112,20 +116,25 @@
                 </div>
                 <div class="header-tools">
                     <button class="action" onclick="recargar_tablas()" title="Recargar actividad">🔄</button>
-                    <button class="action" id="boton_exp" onclick="btnexp()" title="Expandir/Contraer actividad">Expandir</button>
+                    <button class="action" id="boton_exp" onclick="btnexp()"
+                        title="Expandir/Contraer actividad">Expandir</button>
                 </div>
             </header>
 
             <div class="tabs">
                 <div class="tab-buttons" role="tablist" aria-label="Cambiar tabla visible">
-                    <button class="tab-btn active" role="tab" aria-selected="true" data-tab-target="#tab-historial">📜 Historial</button>
-                    <button class="tab-btn" role="tab" aria-selected="false" data-tab-target="#tab-sin-validar">❌ Códigos sin validar</button>
-                    <button class="tab-btn" role="tab" aria-selected="false" data-tab-target="#tab-validados">✅ Códigos validados</button>
+                    <button class="tab-btn active" role="tab" aria-selected="true" data-tab-target="#tab-historial">📜
+                        Historial</button>
+                    <button class="tab-btn" role="tab" aria-selected="false" data-tab-target="#tab-sin-validar">❌
+                        Códigos sin validar</button>
+                    <button class="tab-btn" role="tab" aria-selected="false" data-tab-target="#tab-validados">✅ Códigos
+                        validados</button>
                 </div>
 
                 <div class="tab-content">
                     <!-- Panel: Historial (se carga desde la base de datos) -->
-                    <div id="tab-historial" class="tab-panel active" role="tabpanel" aria-labelledby="tab-historial-btn">
+                    <div id="tab-historial" class="tab-panel active" role="tabpanel"
+                        aria-labelledby="tab-historial-btn">
                         <div class="table-wrap">
                             <table class="table" aria-describedby="actividad-title">
                                 <thead>
@@ -178,7 +187,7 @@
                 </div>
             </div>
         </section>
-        
+
     </main>
     <footer class="footer" role="contentinfo">
         <small>©<span id="y"></span> Todos los derechos reservados.</small>
@@ -188,7 +197,7 @@
         (function () {
             // Proteger ruta: si no hay sesión activa, volver a login
             if (!sessionStorage.getItem('ingreso')) {
-                try { window.location.href = '../index.html'; } catch(_) {}
+                try { window.location.href = '../index.html'; } catch (_) { }
                 return;
             }
             // Año en footer
@@ -201,8 +210,9 @@
                 window.location.href = '../index.html';
             });
         })();
-    </script>   
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="/scripts/script_pagina_incial.js"></script>    
+    <script src="/scripts/config.js"></script>
+    <script src="/scripts/script_pagina_incial.js"></script>
 </body>
